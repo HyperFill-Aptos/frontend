@@ -1,7 +1,7 @@
 export const CONTRACTS = {
-    VAULT_ADDRESS: "0x1::hyperfill_vault::HyperFillVault",
+    VAULT_ADDRESS: "0xe22a7dbf85b88f1c950b96923e29f0213121002f296c0572549f2a6a7e7fd6f5",
     APT_ADDRESS: "0x1::aptos_coin::AptosCoin",
-    SETTLEMENT_ADDRESS: "0x1::hyperfill_settlement::TradeSettlement",
+    SETTLEMENT_ADDRESS: "0xe22a7dbf85b88f1c950b96923e29f0213121002f296c0572549f2a6a7e7fd6f5",
     USDT_ADDRESS: "0x1::coin::CoinStore<0xf22bede237a07e121b56d91a491eb7bcdfd1f5907926a9e58338f964a01b17fa::asset::USDT>",
   } as const;
 
@@ -9,7 +9,7 @@ export const CONTRACTS = {
   export const APTOS_TESTNET = {
     name: "Aptos Testnet",
     chainId: 2,
-    url: "https://fullnode.testnet.aptoslabs.com/v1",
+    url: "https://api.testnet.aptoslabs.com/v1",
     faucetUrl: "https://faucet.testnet.aptoslabs.com",
     explorerUrl: "https://explorer.aptoslabs.com/?network=testnet",
   } as const;

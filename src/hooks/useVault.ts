@@ -1,8 +1,6 @@
-// src/hooks/useVault.ts - ETHERS V6
 import { useState, useCallback, useEffect } from 'react';
-import { ethers } from 'ethers';
 import { useWallet } from './useWallet';
-import { CONTRACTS, VAULT_ABI, WSEI_ABI } from '@/lib/contracts';
+import { CONTRACTS } from '@/lib/contracts';
 
 export interface VaultStats {
   userShares: string;
@@ -32,237 +30,176 @@ export interface WithdrawResult {
 }
 
 export const useVault = () => {
-  const { signer, account, isConnected } = useWallet();
+  const { account, isConnected, signAndSubmitTransaction, client } = useWallet();
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<VaultStats | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Create contract instances
-  const getContracts = useCallback(() => {
-    if (!signer) return null;
-    
-    const vaultContract = new ethers.Contract(
-      CONTRACTS.VAULT_ADDRESS,
-      VAULT_ABI,
-      signer
-    );
-    
-    const wseiContract = new ethers.Contract(
-      CONTRACTS.WSEI_ADDRESS,
-      WSEI_ABI,
-      signer
-    );
-
-    return { vaultContract, wseiContract };
-  }, [signer]);
-
-  // Fetch vault stats
   const fetchStats = useCallback(async () => {
-    if (!signer || !account) return;
+    if (!account || !client) return;
 
     setRefreshing(true);
     try {
-      const contracts = getContracts();
-      if (!contracts) return;
-
-      const { vaultContract, wseiContract } = contracts;
-
-      // Fetch all data in parallel
       const [
-        userShares,
-        userBalance,
-        totalAssets,
-        totalSupply,
-        sharePrice,
-        availableAssets,
-        minDeposit,
-        isPaused,
-        wseiBalance,
-        wseiAllowance,
+        userSharesResult,
+        totalAssetsResult,
+        totalSharesResult,
+        sharePriceResult,
+        availableAssetsResult,
+        minDepositResult,
+        isPausedResult,
+        aptBalanceResult,
       ] = await Promise.all([
-        vaultContract.getUserShareBalance(account),
-        vaultContract.getBalanceUser(account),
-        vaultContract.totalAssets(),
-        vaultContract.totalSupply(),
-        vaultContract.getSharePrice(),
-        vaultContract.getAvailableAssets(),
-        vaultContract.minDeposit(),
-        vaultContract.paused(),
-        wseiContract.balanceOf(account),
-        wseiContract.allowance(account, CONTRACTS.VAULT_ADDRESS),
+        client.view({
+          function: `${CONTRACTS.VAULT_ADDRESS}::hyperfill_vault::get_user_shares`,
+          arguments: [CONTRACTS.VAULT_ADDRESS, account],
+          type_arguments: [],
+        }),
+        client.view({
+          function: `${CONTRACTS.VAULT_ADDRESS}::hyperfill_vault::get_total_assets`,
+          arguments: [CONTRACTS.VAULT_ADDRESS],
+          type_arguments: [],
+        }),
+        client.view({
+          function: `${CONTRACTS.VAULT_ADDRESS}::hyperfill_vault::get_total_shares`,
+          arguments: [CONTRACTS.VAULT_ADDRESS],
+          type_arguments: [],
+        }),
+        client.view({
+          function: `${CONTRACTS.VAULT_ADDRESS}::hyperfill_vault::get_share_price`,
+          arguments: [CONTRACTS.VAULT_ADDRESS],
+          type_arguments: [],
+        }),
+        client.view({
+          function: `${CONTRACTS.VAULT_ADDRESS}::hyperfill_vault::get_available_assets`,
+          arguments: [CONTRACTS.VAULT_ADDRESS],
+          type_arguments: [],
+        }),
+        client.view({
+          function: `${CONTRACTS.VAULT_ADDRESS}::hyperfill_vault::get_min_deposit`,
+          arguments: [CONTRACTS.VAULT_ADDRESS],
+          type_arguments: [],
+        }),
+        client.view({
+          function: `${CONTRACTS.VAULT_ADDRESS}::hyperfill_vault::is_paused`,
+          arguments: [CONTRACTS.VAULT_ADDRESS],
+          type_arguments: [],
+        }),
+        client.getAccountResource({
+          accountAddress: account,
+          resourceType: `0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>`,
+        }),
       ]);
 
+      const formatApt = (value: any) => {
+        const numValue = typeof value === 'string' ? parseInt(value) : value;
+        return (numValue / 100000000).toFixed(4);
+      };
+
       setStats({
-        userShares: ethers.formatEther(userShares),
-        userBalance: ethers.formatEther(userBalance),
-        totalAssets: ethers.formatEther(totalAssets),
-        totalSupply: ethers.formatEther(totalSupply),
-        sharePrice: ethers.formatEther(sharePrice),
-        availableAssets: ethers.formatEther(availableAssets),
-        minDeposit: ethers.formatEther(minDeposit),
-        isPaused,
-        wseiBalance: ethers.formatEther(wseiBalance),
-        wseiAllowance: ethers.formatEther(wseiAllowance),
+        userShares: formatApt(userSharesResult[0] || 0),
+        userBalance: formatApt(userSharesResult[0] || 0),
+        totalAssets: formatApt(totalAssetsResult[0] || 0),
+        totalSupply: formatApt(totalSharesResult[0] || 0),
+        sharePrice: formatApt(sharePriceResult[0] || 1000000000000000000),
+        availableAssets: formatApt(availableAssetsResult[0] || 0),
+        minDeposit: formatApt(minDepositResult[0] || 100000000),
+        isPaused: isPausedResult[0] || false,
+        wseiBalance: formatApt(aptBalanceResult.coin.value || 0),
+        wseiAllowance: '999999',
       });
     } catch (error) {
       console.error('Error fetching vault stats:', error);
     } finally {
       setRefreshing(false);
     }
-  }, [signer, account, getContracts]);
+  }, [account, client]);
 
-  // Approve WSEI spending
   const approveWSEI = useCallback(async (amount: string): Promise<boolean> => {
-    if (!signer) {
-      console.error('No signer available');
-      return false;
-    }
+    return true;
+  }, []);
 
-    try {
-      setLoading(true);
-      const contracts = getContracts();
-      if (!contracts) return false;
-
-      const { wseiContract } = contracts;
-      const amountWei = ethers.parseEther(amount);
-
-      const tx = await wseiContract.approve(CONTRACTS.VAULT_ADDRESS, amountWei);
-      await tx.wait();
-
-      await fetchStats();
-      return true;
-    } catch (error: any) {
-      console.error('Error approving WSEI:', error);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [signer, getContracts, fetchStats]);
-
-  // Deposit to vault
   const deposit = useCallback(async (amount: string): Promise<DepositResult> => {
-    if (!signer) {
-      return { success: false, error: 'No signer available' };
+    if (!account || !signAndSubmitTransaction) {
+      return { success: false, error: 'Wallet not connected' };
     }
 
     try {
       setLoading(true);
-      const contracts = getContracts();
-      if (!contracts) return { success: false, error: 'Failed to get contracts' };
 
-      const { vaultContract } = contracts;
-      const amountWei = ethers.parseEther(amount);
+      const amountInOctas = Math.floor(parseFloat(amount) * 100000000);
 
-      if (stats) {
-        const allowance = ethers.parseEther(stats.wseiAllowance);
-        if (allowance < amountWei) {
-          const approved = await approveWSEI(amount);
-          if (!approved) {
-            return { success: false, error: 'Failed to approve WSEI' };
-          }
-        }
+      const payload = {
+        function: `${CONTRACTS.VAULT_ADDRESS}::hyperfill_vault::deposit_liquidity`,
+        type_arguments: [],
+        arguments: [CONTRACTS.VAULT_ADDRESS, amountInOctas.toString()],
+      };
+
+      const response = await signAndSubmitTransaction(payload);
+
+      if (!response || !response.hash) {
+        throw new Error('Transaction failed');
       }
 
-      const tx = await vaultContract.depositLiquidity(amountWei, {
-        gasLimit: 300000,
-      });
-
-      const receipt = await tx.wait();
-
-      let sharesReceived = '0';
-      if (receipt.logs) {
-        for (const log of receipt.logs) {
-          try {
-            const parsed = vaultContract.interface.parseLog(log);
-            if (parsed && parsed.name === 'LiquidityAdded') {
-              sharesReceived = ethers.formatEther(parsed.args.shares);
-              break;
-            }
-          } catch (e) {
-            // Skip unparseable logs
-          }
-        }
-      }
+      await client?.waitForTransaction(response.hash);
 
       await fetchStats();
 
       return {
         success: true,
-        txHash: tx.hash,
-        shares: sharesReceived,
+        txHash: response.hash,
+        shares: amount,
       };
     } catch (error: any) {
       console.error('Error depositing:', error);
-      let errorMessage = 'Unknown error occurred';
-      
-      if (error.reason) {
-        errorMessage = error.reason;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      return { success: false, error: errorMessage };
+      return {
+        success: false,
+        error: error.message || 'Transaction failed'
+      };
     } finally {
       setLoading(false);
     }
-  }, [signer, getContracts, stats, approveWSEI, fetchStats]);
+  }, [account, signAndSubmitTransaction, client, fetchStats]);
 
-  // Withdraw from vault
   const withdraw = useCallback(async (): Promise<WithdrawResult> => {
-    if (!signer) {
-      return { success: false, error: 'No signer available' };
+    if (!account || !signAndSubmitTransaction) {
+      return { success: false, error: 'Wallet not connected' };
     }
 
     try {
       setLoading(true);
-      const contracts = getContracts();
-      if (!contracts) return { success: false, error: 'Failed to get contracts' };
 
-      const { vaultContract } = contracts;
+      const payload = {
+        function: `${CONTRACTS.VAULT_ADDRESS}::hyperfill_vault::withdraw_profits`,
+        type_arguments: [],
+        arguments: [CONTRACTS.VAULT_ADDRESS],
+      };
 
-      const tx = await vaultContract.withdrawProfits({
-        gasLimit: 300000,
-      });
+      const response = await signAndSubmitTransaction(payload);
 
-      const receipt = await tx.wait();
-
-      let assetsReceived = '0';
-      if (receipt.logs) {
-        for (const log of receipt.logs) {
-          try {
-            const parsed = vaultContract.interface.parseLog(log);
-            if (parsed && parsed.name === 'LiquidityRemoved') {
-              assetsReceived = ethers.formatEther(parsed.args.assets);
-              break;
-            }
-          } catch (e) {
-            // Skip unparseable logs
-          }
-        }
+      if (!response || !response.hash) {
+        throw new Error('Transaction failed');
       }
+
+      await client?.waitForTransaction(response.hash);
 
       await fetchStats();
 
       return {
         success: true,
-        txHash: tx.hash,
-        assets: assetsReceived,
+        txHash: response.hash,
+        assets: stats?.userShares || '0',
       };
     } catch (error: any) {
       console.error('Error withdrawing:', error);
-      let errorMessage = 'Unknown error occurred';
-      
-      if (error.reason) {
-        errorMessage = error.reason;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      return { success: false, error: errorMessage };
+      return {
+        success: false,
+        error: error.message || 'Transaction failed'
+      };
     } finally {
       setLoading(false);
     }
-  }, [signer, getContracts, fetchStats]);
+  }, [account, signAndSubmitTransaction, client, stats, fetchStats]);
 
   useEffect(() => {
     if (isConnected && account) {

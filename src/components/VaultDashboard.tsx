@@ -12,7 +12,7 @@ import { useWallet } from '@/hooks/useWallet';
 import { useVault } from '@/hooks/useVault';
 
 export const VaultDashboard = () => {
-  const { account, isConnected, isOnSeiTestnet } = useWallet();
+  const { account, isConnected } = useWallet();
   const { stats, loading, refreshing, deposit, withdraw, approveWSEI, refreshStats } = useVault();
   const { toast } = useToast();
   
@@ -33,7 +33,7 @@ export const VaultDashboard = () => {
     if (stats && parseFloat(depositAmount) < parseFloat(stats.minDeposit)) {
       toast({
         title: "Amount too small", 
-        description: `Minimum deposit is ${stats.minDeposit} WSEI`,
+        description: `Minimum deposit is ${stats.minDeposit} APT`,
         variant: "destructive",
       });
       return;
@@ -42,7 +42,7 @@ export const VaultDashboard = () => {
     if (stats && parseFloat(depositAmount) > parseFloat(stats.wseiBalance)) {
       toast({
         title: "Insufficient balance",
-        description: "You don't have enough WSEI",
+        description: "You don't have enough APT",
         variant: "destructive",
       });
       return;
@@ -55,7 +55,7 @@ export const VaultDashboard = () => {
       if (result.success) {
         toast({
           title: "Deposit successful!",
-          description: `Deposited ${depositAmount} WSEI and received ${result.shares} shares`,
+          description: `Deposited ${depositAmount} APT and received ${result.shares} shares`,
         });
         setDepositAmount('');
       } else {
@@ -93,7 +93,7 @@ export const VaultDashboard = () => {
       if (result.success) {
         toast({
           title: "Withdrawal successful!",
-          description: `Withdrew ${result.assets} WSEI`,
+          description: `Withdrew ${result.assets} APT`,
         });
       } else {
         toast({
@@ -121,7 +121,7 @@ export const VaultDashboard = () => {
       if (success) {
         toast({
           title: "Approval successful",
-          description: `Approved ${depositAmount} WSEI for spending`,
+          description: `Approved ${depositAmount} APT for spending`,
         });
       }
     } catch (error) {
@@ -149,7 +149,7 @@ export const VaultDashboard = () => {
     );
   }
 
-  if (!isOnSeiTestnet) {
+  if (false) { // Network check not needed for Aptos
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Card className="w-[400px]">
@@ -177,7 +177,7 @@ export const VaultDashboard = () => {
             <div className="text-2xl font-bold">
               {stats ? parseFloat(stats.wseiBalance).toFixed(4) : '0.0000'}
             </div>
-            <p className="text-xs text-muted-foreground">WSEI</p>
+            <p className="text-xs text-muted-foreground">APT</p>
           </CardContent>
         </Card>
 
@@ -203,7 +203,7 @@ export const VaultDashboard = () => {
             <div className="text-2xl font-bold">
               {stats ? parseFloat(stats.sharePrice).toFixed(4) : '1.0000'}
             </div>
-            <p className="text-xs text-muted-foreground">WSEI per Share</p>
+            <p className="text-xs text-muted-foreground">APT per Share</p>
           </CardContent>
         </Card>
 
@@ -216,7 +216,7 @@ export const VaultDashboard = () => {
             <div className="text-2xl font-bold">
               {stats ? parseFloat(stats.totalAssets).toFixed(2) : '0.00'}
             </div>
-            <p className="text-xs text-muted-foreground">Total WSEI</p>
+            <p className="text-xs text-muted-foreground">Total APT</p>
           </CardContent>
         </Card>
       </div>
@@ -228,9 +228,9 @@ export const VaultDashboard = () => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Deposit WSEI</CardTitle>
+                <CardTitle>Deposit APT</CardTitle>
                 <CardDescription>
-                  Deposit WSEI tokens to receive vault shares
+                  Deposit APT tokens to receive vault shares
                 </CardDescription>
               </div>
               {stats?.isPaused && (
@@ -240,7 +240,7 @@ export const VaultDashboard = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="deposit-amount">Amount (WSEI)</Label>
+              <Label htmlFor="deposit-amount">Amount (APT)</Label>
               <Input
                 id="deposit-amount"
                 type="number"
@@ -250,8 +250,8 @@ export const VaultDashboard = () => {
                 disabled={isDepositing || loading || stats?.isPaused}
               />
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Balance: {stats ? parseFloat(stats.wseiBalance).toFixed(4) : '0.0000'} WSEI</span>
-                <span>Min: {stats ? parseFloat(stats.minDeposit).toFixed(2) : '1.00'} WSEI</span>
+                <span>Balance: {stats ? parseFloat(stats.wseiBalance).toFixed(4) : '0.0000'} APT</span>
+                <span>Min: {stats ? parseFloat(stats.minDeposit).toFixed(2) : '1.00'} APT</span>
               </div>
             </div>
 
@@ -259,7 +259,7 @@ export const VaultDashboard = () => {
             {stats && depositAmount && parseFloat(depositAmount) > parseFloat(stats.wseiAllowance) && (
               <div className="p-3 bg-amber-50 dark:bg-amber-950 rounded-lg border border-amber-200 dark:border-amber-800">
                 <p className="text-sm text-amber-800 dark:text-amber-200">
-                  Approval needed for {depositAmount} WSEI
+                  Approval needed for {depositAmount} APT
                 </p>
                 <Button 
                   variant="outline" 
@@ -268,7 +268,7 @@ export const VaultDashboard = () => {
                   disabled={loading}
                   className="mt-2"
                 >
-                  Approve WSEI
+                  Approve APT
                 </Button>
               </div>
             )}
@@ -295,7 +295,7 @@ export const VaultDashboard = () => {
           <CardHeader>
             <CardTitle>Withdraw</CardTitle>
             <CardDescription>
-              Withdraw all your shares and receive WSEI
+              Withdraw all your shares and receive APT
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -308,7 +308,7 @@ export const VaultDashboard = () => {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm">Estimated WSEI:</span>
+                  <span className="text-sm">Estimated APT:</span>
                   <span className="text-sm font-medium">
                     {stats ? (parseFloat(stats.userShares) * parseFloat(stats.sharePrice)).toFixed(4) : '0.0000'}
                   </span>
