@@ -1,70 +1,62 @@
-// src/lib/contracts.ts
-
-// ===== ADDRESSES =====
 export const CONTRACTS = {
-    VAULT_ADDRESS: "0x2B8C9cd22eFd93e15ff4A7cB7A0ef0A16Eb435C3",
-    WSEI_ADDRESS: "0x8eFcF5c2DDDA6C1A63D8395965Ca6c0609CE32D5",
-    SETTLEMENT_ADDRESS: "0xF14dbF48b727AD8346dD8Fa6C0FC42FCb81FF115",
-    USDT_ADDRESS: "0x54099052D0e04a5CF24e4c7c82eA693Fb25E0Bed",
+    VAULT_ADDRESS: "0x1::hyperfill_vault::HyperFillVault",
+    APT_ADDRESS: "0x1::aptos_coin::AptosCoin",
+    SETTLEMENT_ADDRESS: "0x1::hyperfill_settlement::TradeSettlement",
+    USDT_ADDRESS: "0x1::coin::CoinStore<0xf22bede237a07e121b56d91a491eb7bcdfd1f5907926a9e58338f964a01b17fa::asset::USDT>",
   } as const;
-  
 
-  // ===== SEI TESTNET CONFIG =====
-  export const SEI_TESTNET = {
-    chainId: 1328,
-    chainName: "SEI Testnet",
-    nativeCurrency: {
-      name: "SEI",
-      symbol: "SEI", 
-      decimals: 18,
-    },
-    rpcUrls: ["https://evm-rpc-testnet.sei-apis.com"],
-    blockExplorerUrls: ["https://seitrace.com"],
+
+  export const APTOS_TESTNET = {
+    name: "Aptos Testnet",
+    chainId: 2,
+    url: "https://fullnode.testnet.aptoslabs.com/v1",
+    faucetUrl: "https://faucet.testnet.aptoslabs.com",
+    explorerUrl: "https://explorer.aptoslabs.com/?network=testnet",
   } as const;
-  
-  // ===== VAULT ABI =====
-  export const VAULT_ABI = [
-    "function depositLiquidity(uint256 assets) external returns (uint256 shares)",
-    "function withdrawProfits() external returns (uint256 assets)",
-    "function getUserShareBalance(address user) external view returns (uint256)",
-    "function getBalanceUser(address user) external view returns (uint256)",
-    "function balanceOf(address account) external view returns (uint256)",
-    "function totalSupply() external view returns (uint256)",
-    "function totalAssets() external view returns (uint256)",
-    "function getSharePrice() external view returns (uint256)",
-    "function getAvailableAssets() external view returns (uint256)",
-    "function minDeposit() external view returns (uint256)",
-    "function paused() external view returns (bool)",
-    "function asset() external view returns (address)",
-    "function previewDeposit(uint256 assets) external view returns (uint256)",
-    "function previewRedeem(uint256 shares) external view returns (uint256)",
-    "event LiquidityAdded(address indexed user, uint256 assets, uint256 shares)",
-    "event LiquidityRemoved(address indexed user, uint256 assets, uint256 shares)"
-  ] as const;
-  
-  // ===== WSEI ABI =====
-  export const WSEI_ABI = [
-    "function approve(address spender, uint256 amount) external returns (bool)",
-    "function balanceOf(address account) external view returns (uint256)",
-    "function allowance(address owner, address spender) external view returns (uint256)",
-    "function decimals() external view returns (uint8)",
-    "function symbol() external view returns (string)",
-    "function name() external view returns (string)",
-    "function transfer(address to, uint256 amount) external returns (bool)",
-    "function deposit() external payable",
-    "function withdraw(uint256 amount) external",
-    "event Transfer(address indexed from, address indexed to, uint256 value)",
-    "event Approval(address indexed owner, address indexed spender, uint256 value)"
-  ] as const;
 
-  export const ERC20_ABI = [
-    "function approve(address spender, uint256 amount) external returns (bool)",
-    "function balanceOf(address account) external view returns (uint256)",
-    "function allowance(address owner, address spender) external view returns (uint256)",
-    "function decimals() external view returns (uint8)",
-    "function symbol() external view returns (string)",
-    "function name() external view returns (string)",
-    "function transfer(address to, uint256 amount) external returns (bool)",
-    "event Transfer(address indexed from, address indexed to, uint256 value)",
-    "event Approval(address indexed owner, address indexed spender, uint256 value)"
-  ] as const;
+  export const APTOS_MAINNET = {
+    name: "Aptos Mainnet",
+    chainId: 1,
+    url: "https://fullnode.mainnet.aptoslabs.com/v1",
+    explorerUrl: "https://explorer.aptoslabs.com/?network=mainnet",
+  } as const;
+
+  export const VAULT_FUNCTIONS = {
+    DEPOSIT_LIQUIDITY: "deposit_liquidity",
+    WITHDRAW_PROFITS: "withdraw_profits",
+    GET_USER_SHARE_BALANCE: "get_user_share_balance",
+    GET_BALANCE_USER: "get_balance_user",
+    BALANCE_OF: "balance_of",
+    TOTAL_SUPPLY: "total_supply",
+    TOTAL_ASSETS: "total_assets",
+    GET_SHARE_PRICE: "get_share_price",
+    GET_AVAILABLE_ASSETS: "get_available_assets",
+    MIN_DEPOSIT: "min_deposit",
+    PAUSED: "paused",
+    ASSET: "asset",
+    PREVIEW_DEPOSIT: "preview_deposit",
+    PREVIEW_REDEEM: "preview_redeem",
+  } as const;
+
+  export const VAULT_EVENTS = {
+    LIQUIDITY_ADDED: "LiquidityAdded",
+    LIQUIDITY_REMOVED: "LiquidityRemoved",
+  } as const;
+
+  export const APT_FUNCTIONS = {
+    BALANCE: "balance",
+    TRANSFER: "transfer",
+    DECIMALS: "decimals",
+    SYMBOL: "symbol",
+    NAME: "name",
+  } as const;
+
+  export const COIN_FUNCTIONS = {
+    BALANCE: "balance",
+    TRANSFER: "transfer",
+    DECIMALS: "decimals",
+    SYMBOL: "symbol",
+    NAME: "name",
+  } as const;
+
+  export const ERC20_ABI = [];
