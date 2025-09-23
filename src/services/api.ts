@@ -28,7 +28,7 @@ interface VaultStats {
   managementFee: number;
 }
 
-class HyperFillAPI {
+class HyperMoveAPI {
   private baseUrl: string;
   private executiveUrl: string;
   private analyzerUrl: string;
@@ -174,5 +174,5 @@ class HyperFillAPI {
   }
 }
 
-export const hyperFillAPI = new HyperFillAPI();
+export const hyperMoveAPI = new HyperMoveAPI();
 export type { MarketData, OrderbookData, AgentStatus, VaultStats };

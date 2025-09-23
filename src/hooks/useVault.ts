@@ -11,8 +11,8 @@ export interface VaultStats {
   availableAssets: string;
   minDeposit: string;
   isPaused: boolean;
-  wseiBalance: string;
-  wseiAllowance: string;
+  aptBalance: string;
+  aptAllowance: string;
 }
 
 export interface DepositResult {
@@ -105,8 +105,8 @@ export const useVault = () => {
         availableAssets: formatApt(availableAssetsResult[0] || 0),
         minDeposit: formatApt(minDepositResult[0] || 100000000),
         isPaused: isPausedResult[0] || false,
-        wseiBalance: formatApt(aptBalanceResult.coin.value || 0),
-        wseiAllowance: '999999',
+        aptBalance: formatApt(aptBalanceResult.coin.value || 0),
+        aptAllowance: '999999',
       });
     } catch (error) {
       console.error('Error fetching vault stats:', error);
@@ -115,7 +115,7 @@ export const useVault = () => {
     }
   }, [account, client]);
 
-  const approveWSEI = useCallback(async (amount: string): Promise<boolean> => {
+  const approveAPT = useCallback(async (amount: string): Promise<boolean> => {
     return true;
   }, []);
 
@@ -215,7 +215,7 @@ export const useVault = () => {
     refreshing,
     deposit,
     withdraw,
-    approveWSEI,
+    approveAPT,
     refreshStats: fetchStats,
   };
 };

@@ -49,7 +49,7 @@ const initialAgents: Agent[] = [
     lastActivity: "0s ago",
     icon: Zap,
     description: "Lightning-fast trade execution & market timing",
-    currentTask: "Executing BUY order: 150 SEI @ $0.2451",
+    currentTask: "Executing BUY order: 150 APT @ $0.2451",
     performance: "47ms avg latency",
     personality: "Legendary stock picker with perfect timing"
   },

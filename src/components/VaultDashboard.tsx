@@ -1,19 +1,17 @@
-// src/components/VaultDashboard.tsx
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, RefreshCw, TrendingUp, TrendingDown, Wallet, PiggyBank } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { useWallet } from '@/hooks/useWallet';
 import { useVault } from '@/hooks/useVault';
 
 export const VaultDashboard = () => {
   const { account, isConnected } = useWallet();
-  const { stats, loading, refreshing, deposit, withdraw, approveWSEI, refreshStats } = useVault();
+  const { stats, loading, refreshing, deposit, withdraw, approveAPT, refreshStats } = useVault();
   const { toast } = useToast();
   
   const [depositAmount, setDepositAmount] = useState('');
@@ -39,7 +37,7 @@ export const VaultDashboard = () => {
       return;
     }
 
-    if (stats && parseFloat(depositAmount) > parseFloat(stats.wseiBalance)) {
+    if (stats && parseFloat(depositAmount) > parseFloat(stats.aptBalance)) {
       toast({
         title: "Insufficient balance",
         description: "You don't have enough APT",
@@ -117,7 +115,7 @@ export const VaultDashboard = () => {
     if (!depositAmount) return;
     
     try {
-      const success = await approveWSEI(depositAmount);
+      const success = await approveAPT(depositAmount);
       if (success) {
         toast({
           title: "Approval successful",
@@ -127,7 +125,7 @@ export const VaultDashboard = () => {
     } catch (error) {
       toast({
         title: "Approval failed",
-        description: "Failed to approve WSEI",
+        description: "Failed to approve APT",
         variant: "destructive",
       });
     }
@@ -135,16 +133,12 @@ export const VaultDashboard = () => {
 
   if (!isConnected) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Card className="w-[400px]">
-          <CardHeader className="text-center">
-            <Wallet className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <CardTitle>Connect Your Wallet</CardTitle>
-            <CardDescription>
-              Please connect your wallet to access the HyperFill Vault
-            </CardDescription>
-          </CardHeader>
-        </Card>
+      <div className="bg-black border border-red-400/30 p-6 font-mono">
+        <div className="text-center space-y-4">
+          <div className="text-red-400 font-terminal text-sm">[WALLET_DISCONNECTED]</div>
+          <div className="text-muted-foreground text-xs">access denied - authentication required</div>
+          <div className="text-xs text-red-400">connect wallet to access vault functions</div>
+        </div>
       </div>
     );
   }
@@ -156,7 +150,7 @@ export const VaultDashboard = () => {
           <CardHeader className="text-center">
             <CardTitle>Wrong Network</CardTitle>
             <CardDescription>
-              Please switch to SEI Testnet to use the vault
+              Please switch to APT Testnet to use the vault
             </CardDescription>
           </CardHeader>
         </Card>
@@ -165,189 +159,257 @@ export const VaultDashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Your Balance</CardTitle>
-            <Wallet className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats ? parseFloat(stats.wseiBalance).toFixed(4) : '0.0000'}
+    <div className="space-y-4">
+      <div className="bg-black border border-red-400/30 p-4 font-mono">
+        <div className="text-red-400 font-terminal text-sm mb-3">[VAULT_STATS]</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="bg-muted/20 border border-border/50 p-3">
+            <div className="text-xs text-muted-foreground mb-1">apt_balance:</div>
+            <div className="text-sm font-mono text-foreground">
+              {stats ? parseFloat(stats.aptBalance).toFixed(4) : '0.0000'}
             </div>
-            <p className="text-xs text-muted-foreground">APT</p>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Your Shares</CardTitle>
-            <PiggyBank className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <div className="bg-muted/20 border border-border/50 p-3">
+            <div className="text-xs text-muted-foreground mb-1">vault_shares:</div>
+            <div className="text-sm font-mono text-foreground">
               {stats ? parseFloat(stats.userShares).toFixed(4) : '0.0000'}
             </div>
-            <p className="text-xs text-muted-foreground">Vault Shares</p>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Share Price</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <div className="bg-muted/20 border border-border/50 p-3">
+            <div className="text-xs text-muted-foreground mb-1">share_price:</div>
+            <div className="text-sm font-mono text-foreground">
               {stats ? parseFloat(stats.sharePrice).toFixed(4) : '1.0000'}
             </div>
-            <p className="text-xs text-muted-foreground">APT per Share</p>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Assets</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <div className="bg-muted/20 border border-border/50 p-3">
+            <div className="text-xs text-muted-foreground mb-1">total_assets:</div>
+            <div className="text-sm font-mono text-foreground">
               {stats ? parseFloat(stats.totalAssets).toFixed(2) : '0.00'}
             </div>
-            <p className="text-xs text-muted-foreground">Total APT</p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
-      {/* Main Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Deposit Card */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Deposit APT</CardTitle>
-                <CardDescription>
-                  Deposit APT tokens to receive vault shares
-                </CardDescription>
-              </div>
-              {stats?.isPaused && (
-                <Badge variant="destructive">Paused</Badge>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="deposit-amount">Amount (APT)</Label>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-black border border-red-400/30 p-4 font-mono">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-red-400 font-terminal text-sm">[DEPOSIT_APT]</div>
+            {stats?.isPaused && (
+              <Badge variant="destructive" className="text-xs font-mono">PAUSED</Badge>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">amount_apt:</div>
               <Input
-                id="deposit-amount"
                 type="number"
                 placeholder="0.0"
                 value={depositAmount}
                 onChange={(e) => setDepositAmount(e.target.value)}
                 disabled={isDepositing || loading || stats?.isPaused}
+                className="bg-muted/20 border-border/50 font-mono text-sm"
               />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Balance: {stats ? parseFloat(stats.wseiBalance).toFixed(4) : '0.0000'} APT</span>
-                <span>Min: {stats ? parseFloat(stats.minDeposit).toFixed(2) : '1.00'} APT</span>
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>balance: {stats ? parseFloat(stats.aptBalance).toFixed(4) : '0.0000'}</span>
+                <span>min: {stats ? parseFloat(stats.minDeposit).toFixed(2) : '1.00'}</span>
               </div>
             </div>
 
-            {/* Approval Info */}
-            {stats && depositAmount && parseFloat(depositAmount) > parseFloat(stats.wseiAllowance) && (
-              <div className="p-3 bg-amber-50 dark:bg-amber-950 rounded-lg border border-amber-200 dark:border-amber-800">
-                <p className="text-sm text-amber-800 dark:text-amber-200">
-                  Approval needed for {depositAmount} APT
-                </p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+            {stats && depositAmount && parseFloat(depositAmount) > parseFloat(stats.aptAllowance) && (
+              <div className="p-2 bg-amber-950/30 border border-amber-400/30">
+                <div className="text-xs text-amber-400 mb-2">
+                  approval_required: {depositAmount} APT
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={handleApprove}
                   disabled={loading}
-                  className="mt-2"
+                  className="text-xs font-mono"
                 >
-                  Approve APT
+                  approve_apt
                 </Button>
               </div>
             )}
 
-            <Button 
-              onClick={handleDeposit} 
+            <Button
+              onClick={handleDeposit}
               disabled={isDepositing || loading || !depositAmount || stats?.isPaused}
-              className="w-full"
+              className="w-full font-mono text-sm"
             >
               {isDepositing ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Depositing...
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                  depositing...
                 </>
               ) : (
-                'Deposit'
+                'execute_deposit'
               )}
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        {/* Withdraw Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Withdraw</CardTitle>
-            <CardDescription>
-              Withdraw all your shares and receive APT
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="p-4 bg-muted rounded-lg">
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm">Your Shares:</span>
-                  <span className="text-sm font-medium">
-                    {stats ? parseFloat(stats.userShares).toFixed(4) : '0.0000'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Estimated APT:</span>
-                  <span className="text-sm font-medium">
-                    {stats ? (parseFloat(stats.userShares) * parseFloat(stats.sharePrice)).toFixed(4) : '0.0000'}
-                  </span>
-                </div>
+        <div className="bg-black border border-red-400/30 p-4 font-mono">
+          <div className="text-red-400 font-terminal text-sm mb-3">[WITHDRAW_ALL]</div>
+
+          <div className="space-y-3">
+            <div className="bg-muted/20 border border-border/50 p-3 space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">your_shares:</span>
+                <span className="text-foreground font-mono">
+                  {stats ? parseFloat(stats.userShares).toFixed(4) : '0.0000'}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">estimated_apt:</span>
+                <span className="text-foreground font-mono">
+                  {stats ? (parseFloat(stats.userShares) * parseFloat(stats.sharePrice)).toFixed(4) : '0.0000'}
+                </span>
               </div>
             </div>
 
-            <Button 
+            <Button
               onClick={handleWithdraw}
               disabled={isWithdrawing || loading || !stats || parseFloat(stats.userShares) === 0}
               variant="destructive"
-              className="w-full"
+              className="w-full font-mono text-sm"
             >
               {isWithdrawing ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Withdrawing...
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                  withdrawing...
                 </>
               ) : (
-                'Withdraw All'
+                'execute_withdrawal'
               )}
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
-      {/* Refresh Button */}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-black border border-red-400/30 p-4 font-mono">
+          <div className="text-red-400 font-terminal text-sm mb-3">[PORTFOLIO_ALLOCATION]</div>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">APT/USDC:</span>
+                <span className="text-green-400">45%</span>
+              </div>
+              <div className="w-full bg-muted/20 h-2 border border-border/50">
+                <div className="bg-green-400 h-full" style={{ width: '45%' }}></div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">BTC/APT:</span>
+                <span className="text-blue-400">30%</span>
+              </div>
+              <div className="w-full bg-muted/20 h-2 border border-border/50">
+                <div className="bg-blue-400 h-full" style={{ width: '30%' }}></div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">ETH/APT:</span>
+                <span className="text-purple-400">25%</span>
+              </div>
+              <div className="w-full bg-muted/20 h-2 border border-border/50">
+                <div className="bg-purple-400 h-full" style={{ width: '25%' }}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-black border border-red-400/30 p-4 font-mono">
+          <div className="text-red-400 font-terminal text-sm mb-3">[RISK_METRICS]</div>
+          <div className="space-y-3">
+            <div className="text-center">
+              <div className="relative w-24 h-24 mx-auto mb-2">
+                <svg className="w-full h-full" viewBox="0 0 100 100">
+                  <circle
+                    cx="50" cy="50" r="40"
+                    fill="none"
+                    stroke="#333"
+                    strokeWidth="8"
+                  />
+                  <circle
+                    cx="50" cy="50" r="40"
+                    fill="none"
+                    stroke="#10b981"
+                    strokeWidth="8"
+                    strokeDasharray={`${74.3 * 2.51} 251.2`}
+                    strokeDashoffset="0"
+                    transform="rotate(-90 50 50)"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-sm font-bold text-green-400">74%</span>
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground">win_rate</div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="bg-muted/20 border border-border/50 p-2 text-center">
+                <div className="text-green-400">2.18</div>
+                <div className="text-muted-foreground">profit_factor</div>
+              </div>
+              <div className="bg-muted/20 border border-border/50 p-2 text-center">
+                <div className="text-red-400">-8.2%</div>
+                <div className="text-muted-foreground">max_drawdown</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-black border border-red-400/30 p-4 font-mono">
+        <div className="text-red-400 font-terminal text-sm mb-3">[LIVE_TRADING_HEATMAP]</div>
+        <div className="grid grid-cols-8 gap-1 h-32">
+          {Array.from({ length: 64 }, (_, i) => {
+            const intensity = Math.random();
+            const color = intensity > 0.7 ? 'bg-green-400' :
+                         intensity > 0.4 ? 'bg-yellow-400' :
+                         intensity > 0.2 ? 'bg-orange-400' : 'bg-red-400';
+            return (
+              <div
+                key={i}
+                className={`${color} opacity-${Math.floor(intensity * 100)} border border-border/30`}
+                title={`Activity: ${Math.floor(intensity * 100)}%`}
+              />
+            );
+          })}
+        </div>
+        <div className="flex justify-between text-xs text-muted-foreground mt-2">
+          <span>low activity</span>
+          <span>trading intensity</span>
+          <span>high activity</span>
+        </div>
+      </div>
+
       <div className="flex justify-center">
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={refreshStats}
           disabled={refreshing}
+          className="font-mono text-sm border-red-400/30 hover:bg-red-400/10"
         >
           {refreshing ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <>
+              <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+              refreshing...
+            </>
           ) : (
-            <RefreshCw className="mr-2 h-4 w-4" />
+            <>
+              <RefreshCw className="mr-2 h-3 w-3" />
+              refresh_data
+            </>
           )}
-          Refresh Data
         </Button>
       </div>
     </div>

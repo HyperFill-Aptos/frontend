@@ -14,9 +14,9 @@ interface LogEntry {
 
 const generateLogEntry = (): LogEntry => {
   const messages = [
-    "Buffett spotted undervalued SEI fundamentals",
+    "Buffett spotted undervalued APT fundamentals",
     "Belfort calculated maximum profit: $0.2451 with 2.3% upside",
-    "Lynch executed BUY: 150 SEI in 47ms - FILLED",
+    "Lynch executed BUY: 150 APT in 47ms - FILLED",
     "Dalio rebalanced portfolio: risk exposure optimal at 67%",
     "Buffett: 'This reminds me of Coca Cola in 1988'",
     "Belfort: 'Price target updated to $0.2580 - LET'S GO!'",

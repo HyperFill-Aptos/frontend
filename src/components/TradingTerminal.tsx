@@ -130,7 +130,7 @@ const Button = ({ children, variant = 'default', size = 'default', className = '
     outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
     secondary: 'bg-secondary hover:bg-secondary/80 text-secondary-foreground',
     ghost: 'hover:bg-accent hover:text-accent-foreground',
-    terminal: 'bg-green-600 hover:bg-green-700 text-white font-mono'
+    terminal: 'bg-aptos-blue/20 hover:bg-aptos-blue/30 text-aptos-blue font-mono border border-aptos-blue/30'
   };
 
   const sizes = {
@@ -152,34 +152,34 @@ const Button = ({ children, variant = 'default', size = 'default', className = '
 };
 
 const Card = ({ children, className = '' }) => (
-  <div className={`bg-card border border-border rounded-lg ${className}`}>
+  <div className={`bg-black/50 border border-aptos-blue/20 ${className}`}>
     {children}
   </div>
 );
 
 const CardHeader = ({ children, className = '' }) => (
-  <div className={`p-4 border-b border-border ${className}`}>{children}</div>
+  <div className={`p-3 border-b border-aptos-blue/20 bg-black/30 ${className}`}>{children}</div>
 );
 
 const CardTitle = ({ children, className = '' }) => (
-  <h3 className={`text-lg font-semibold text-foreground ${className}`}>{children}</h3>
+  <h3 className={`text-sm font-mono text-aptos-blue ${className}`}>{children}</h3>
 );
 
 const CardContent = ({ children, className = '' }) => (
-  <div className={`p-4 ${className}`}>{children}</div>
+  <div className={`p-3 ${className}`}>{children}</div>
 );
 
 const Badge = ({ children, variant = 'default', className = '' }) => {
   const variants = {
-    default: 'bg-primary text-primary-foreground',
-    success: 'bg-green-500 text-white',
-    destructive: 'bg-red-500 text-white',
-    secondary: 'bg-secondary text-secondary-foreground',
-    outline: 'border border-border text-foreground'
+    default: 'bg-aptos-blue/20 text-aptos-blue border border-aptos-blue/30',
+    success: 'bg-aptos-success/20 text-aptos-success',
+    destructive: 'bg-aptos-error/20 text-aptos-error',
+    secondary: 'bg-aptos-navy-light text-aptos-blue-light/60',
+    outline: 'border border-aptos-blue/20 text-aptos-blue-light'
   };
 
   return (
-    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${variants[variant]} ${className}`}>
+    <span className={`inline-flex items-center px-2 py-1 text-xs font-mono ${variants[variant]} ${className}`}>
       {children}
     </span>
   );
@@ -187,7 +187,7 @@ const Badge = ({ children, variant = 'default', className = '' }) => {
 
 const Input = ({ className = '', ...props }) => (
   <input
-    className={`flex h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+    className={`flex h-9 w-full border border-aptos-blue/10 bg-black/50 px-3 py-1 text-sm font-mono text-aptos-blue-light transition-colors placeholder:text-aptos-blue-light/30 focus:border-aptos-blue/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     {...props}
   />
 );
@@ -206,7 +206,7 @@ const OrderBookPanel = ({ symbol, orderbook, onRefresh, loading }) => {
         <CardTitle className="text-base font-mono">ORDER_BOOK</CardTitle>
         <div className="flex items-center space-x-2">
           <Badge variant="outline" className="font-mono text-xs">
-            {symbol}
+            APT/USDT
           </Badge>
           <Button
             variant="ghost"
@@ -257,14 +257,14 @@ const OrderBookPanel = ({ symbol, orderbook, onRefresh, loading }) => {
           {/* Bids */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-mono text-green-400">BIDS</span>
-              <span className="text-xs font-mono text-muted-foreground">PRICE/SIZE/TOTAL</span>
+              <span className="text-xs font-mono text-aptos-success/80">BIDS</span>
+              <span className="text-xs font-mono text-aptos-blue-light/50">PRICE / SIZE</span>
             </div>
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {orderbook?.bids?.length > 0 ? (
                 orderbook.bids.map((bid, index) => (
                   <div key={index} className="flex justify-between text-xs font-mono">
-                    <span className="text-green-400">{bid.price.toFixed(4)}</span>
+                    <span className="text-aptos-blue-light">{bid.price.toFixed(4)}</span>
                     <span className="text-foreground">{bid.amount.toFixed(2)}</span>
                     <span className="text-muted-foreground">{bid.total.toFixed(2)}</span>
                   </div>
@@ -285,7 +285,7 @@ const TradingPanel = ({ account, onOrderSubmit, loading }) => {
   const [side, setSide] = useState('buy');
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('');
-  const [baseAsset, setBaseAsset] = useState('SEI');
+  const [baseAsset, setBaseAsset] = useState('APT');
   const [quoteAsset, setQuoteAsset] = useState('USDT');
 
   const handleSubmit = (e) => {
@@ -293,7 +293,7 @@ const TradingPanel = ({ account, onOrderSubmit, loading }) => {
     if (!price || !quantity || !account) return;
 
     const getTokenAddress = (symbol) => {
-      if (symbol === 'SEI') return CONTRACTS.WSEI_ADDRESS;
+      if (symbol === 'APT') return CONTRACTS.APT_ADDRESS;
       if (symbol === 'USDT') return CONTRACTS.USDT_ADDRESS;
       return symbol;
     };
@@ -322,18 +322,18 @@ const TradingPanel = ({ account, onOrderSubmit, loading }) => {
               variant={side === 'buy' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setSide('buy')}
-              className={side === 'buy' ? 'bg-green-600 hover:bg-green-700' : ''}
+              className={side === 'buy' ? 'bg-aptos-success/20 hover:bg-aptos-success/30 text-aptos-success border-aptos-success/30' : 'text-aptos-blue-light/60'}
             >
-              BUY
+              <span className="text-white">BUY</span>
             </Button>
             <Button
               type="button"
               variant={side === 'sell' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setSide('sell')}
-              className={side === 'sell' ? 'bg-red-600 hover:bg-red-700' : ''}
+              className={side === 'sell' ? 'bg-aptos-error/20 hover:bg-aptos-error/30 text-aptos-error border-aptos-error/30' : 'text-aptos-blue-light/60'}
             >
-              SELL
+              <span className="text-white">SELL</span>
             </Button>
           </div>
 
@@ -344,9 +344,9 @@ const TradingPanel = ({ account, onOrderSubmit, loading }) => {
                 id="base-asset"
                 value={baseAsset}
                 onChange={(e) => setBaseAsset(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-sm"
+                className="flex h-9 w-full border border-aptos-blue/10 bg-black/50 px-3 py-1 text-sm font-mono text-aptos-blue-light focus:border-aptos-blue/30 focus:outline-none"
               >
-                <option value="SEI">SEI</option>
+                <option value="APT">APT</option>
                 <option value="BTC">BTC</option>
                 <option value="ETH">ETH</option>
               </select>
@@ -357,7 +357,7 @@ const TradingPanel = ({ account, onOrderSubmit, loading }) => {
                 id="quote-asset"
                 value={quoteAsset}
                 onChange={(e) => setQuoteAsset(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-sm"
+                className="flex h-9 w-full border border-aptos-blue/10 bg-black/50 px-3 py-1 text-sm font-mono text-aptos-blue-light focus:border-aptos-blue/30 focus:outline-none"
               >
                 <option value="USDT">USDT</option>
                 <option value="USDC">USDC</option>
@@ -423,8 +423,7 @@ const AgentStatusPanel = ({ onStartAgent, agentRunning, agentLoading }) => {
   return (
     <Card className="h-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-base font-mono flex items-center gap-2">
-          <Brain className="h-4 w-4 text-blue-400" />
+        <CardTitle className="text-base font-mono">
           AI_AGENTS
         </CardTitle>
         <Button
@@ -449,17 +448,17 @@ const AgentStatusPanel = ({ onStartAgent, agentRunning, agentLoading }) => {
           {agents.map((agent, index) => (
             <div key={index} className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${agent.status === 'ACTIVE' ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></div>
-                <span className="text-sm font-mono">{agent.name}</span>
+                <div className={`w-2 h-2 ${agent.status === 'ACTIVE' ? 'bg-aptos-success animate-pulse' : 'bg-aptos-blue-light/30'}`}></div>
+                <span className="text-sm font-mono text-white">{agent.name}</span>
                 <Badge variant={agent.status === 'ACTIVE' ? 'success' : 'secondary'} className="text-xs">
                   {agent.status}
                 </Badge>
               </div>
               <div className="text-xs font-mono text-right">
-                <div className={`${agent.pnl.startsWith('+') ? 'text-green-400' : 'text-red-400'}`}>
+                <div className={`${agent.pnl.startsWith('+') ? 'text-aptos-blue-light' : 'text-red-400'}`}>
                   {agent.pnl}
                 </div>
-                <div className="text-muted-foreground">{agent.trades} trades</div>
+                <div className="text-green-400">{agent.trades} trades</div>
               </div>
             </div>
           ))}
@@ -481,15 +480,14 @@ const TerminalLog = ({ logs }) => {
   return (
     <Card className="h-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-mono flex items-center gap-2">
-          <Activity className="h-4 w-4 text-green-400" />
+        <CardTitle className="text-base font-mono">
           TERMINAL_LOG
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-2">
-        <div ref={logRef} className="h-48 overflow-y-auto bg-black/20 rounded p-2 font-mono text-xs">
+        <div ref={logRef} className="h-48 overflow-y-auto bg-black/60 border border-aptos-blue/10 p-2 font-mono text-xs">
           {logs.map((log, index) => (
-            <div key={index} className={`mb-1 ${log.type === 'error' ? 'text-red-400' : log.type === 'success' ? 'text-green-400' : 'text-foreground'}`}>
+            <div key={index} className={`mb-1 ${log.type === 'error' ? 'text-red-400' : log.type === 'success' ? 'text-aptos-blue-light' : 'text-foreground'}`}>
               <span className="text-muted-foreground">[{log.timestamp}]</span> {log.message}
             </div>
           ))}
@@ -511,28 +509,27 @@ const MarketStats = ({ symbol, orderbook }) => {
   return (
     <Card className="h-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-mono flex items-center gap-2">
-          <BarChart3 className="h-4 w-4 text-blue-400" />
+        <CardTitle className="text-base font-mono">
           MARKET_STATS
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-2">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <div className="text-xs text-muted-foreground font-mono">LAST_PRICE</div>
-            <div className="text-lg font-mono text-foreground">{stats.lastPrice.toFixed(4)}</div>
+            <div className="text-xs text-aptos-blue-light/50 font-mono">LAST_PRICE</div>
+            <div className="text-lg font-mono text-aptos-blue-light">{stats.lastPrice.toFixed(4)}</div>
           </div>
           <div>
-            <div className="text-xs text-muted-foreground font-mono">24H_CHANGE</div>
-            <div className="text-lg font-mono text-green-400">{stats.change24h}</div>
+            <div className="text-xs text-aptos-blue-light/50 font-mono">24H_CHANGE</div>
+            <div className="text-lg font-mono text-aptos-success">{stats.change24h}</div>
           </div>
           <div>
-            <div className="text-xs text-muted-foreground font-mono">24H_VOLUME</div>
-            <div className="text-lg font-mono text-foreground">{stats.volume24h}</div>
+            <div className="text-xs text-aptos-blue-light/50 font-mono">24H_VOLUME</div>
+            <div className="text-lg font-mono text-aptos-blue-light">{stats.volume24h}</div>
           </div>
           <div>
-            <div className="text-xs text-muted-foreground font-mono">24H_RANGE</div>
-            <div className="text-sm font-mono text-foreground">{stats.low24h} - {stats.high24h}</div>
+            <div className="text-xs text-aptos-blue-light/50 font-mono">24H_RANGE</div>
+            <div className="text-sm font-mono text-aptos-blue-light">{stats.low24h} - {stats.high24h}</div>
           </div>
         </div>
       </CardContent>
@@ -548,8 +545,8 @@ export function TradingTerminal() {
     isConnecting,
     connect,
     disconnect,
-    isOnSeiTestnet,
-    switchToSeiTestnet
+    isOnAptosTestnet,
+    switchToAptosTestnet
   } = useWallet();
 
   const { checkOrderApprovals } = useTrading();
@@ -567,7 +564,7 @@ export function TradingTerminal() {
   const [tokenApprovals, setTokenApprovals] = useState([]);
   const [pendingOrder, setPendingOrder] = useState(null);
 
-  const currentSymbol = `${CONTRACTS.WSEI_ADDRESS}_${CONTRACTS.USDT_ADDRESS}`;
+  const currentSymbol = `${CONTRACTS.APT_ADDRESS}_${CONTRACTS.USDT_ADDRESS}`;
 
   const addLog = (message, type = 'info') => {
     const newLog = {
@@ -721,17 +718,16 @@ export function TradingTerminal() {
   }, [isConnected, account]);
 
   return (
-    <div className="min-h-screen bg-black text-green-400 p-2 font-mono max-w-7xl mx-auto">
+    <div className="min-h-screen bg-black text-aptos-blue-light p-4 font-sans max-w-7xl mx-auto">
       {/* Terminal Header */}
-      <div className="bg-gray-900 border border-green-400/30 rounded-t-lg p-2 flex items-center justify-between">
+      <div className="bg-black/80 border border-aptos-blue/20 rounded-t-xl p-3 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <div className="flex space-x-1">
-            <div className="w-3 h-3 rounded-full bg-red-500"></div>
-            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+            <div className="w-3 h-3 rounded-full bg-aptos-error/80"></div>
+            <div className="w-3 h-3 rounded-full bg-aptos-warning/80"></div>
+            <div className="w-3 h-3 rounded-full bg-aptos-success/80"></div>
           </div>
-          <Terminal className="h-4 w-4 text-green-400" />
-          <span className="text-sm text-green-400">hyperfill-terminal</span>
+          <span className="text-sm font-medium text-aptos-blue tracking-wider">HyperMove Terminal</span>
         </div>
 
         <div className="flex items-center space-x-3">
@@ -740,9 +736,9 @@ export function TradingTerminal() {
           </Button>
 
           {/* Network Warning */}
-          {isConnected && !isOnSeiTestnet && (
+          {isConnected && !isOnAptosTestnet && (
             <Button
-              onClick={switchToSeiTestnet}
+              onClick={switchToAptosTestnet}
               variant="destructive"
               size="sm"
               className="flex items-center gap-2 font-mono text-xs"
@@ -752,79 +748,61 @@ export function TradingTerminal() {
             </Button>
           )}
 
-          {!isConnected ? (
-            <Button
-              variant="terminal"
-              size="sm"
-              className="animate-pulse font-mono"
-              onClick={connect}
-              disabled={isConnecting}
-            >
-              <Wallet className="h-4 w-4 mr-2" />
-              {isConnecting ? "CONNECTING..." : "Connect Wallet"}
-            </Button>
-          ) : (
-            <div className="flex items-center space-x-2">
-              <span className="text-xs font-mono text-green-400">
-                {formatAddress(account)}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={disconnect}
-                className="font-mono text-xs"
-              >
-                disconnect
-              </Button>
-            </div>
-          )}
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium text-aptos-blue-light">
+              {isConnected ? `Connected: ${formatAddress(account)}` : "Wallet Disconnected"}
+            </span>
+          </div>
 
-          <div className="flex items-center space-x-2 text-green-400">
+          <div className="flex items-center space-x-2 text-aptos-blue-light">
             <Power className="h-4 w-4" />
             <span className="text-sm font-mono">
-              {isConnected && isOnSeiTestnet ? "ONLINE" : "OFFLINE"}
+              {isConnected && isOnAptosTestnet ? "ONLINE" : "OFFLINE"}
             </span>
           </div>
         </div>
       </div>
 
       {/* Terminal Content */}
-      <div className="bg-gray-900 border border-t-0 border-green-400/30 rounded-b-lg p-4 min-h-[calc(100vh-100px)]">
+      <div className="bg-black/90 border border-t-0 border-aptos-blue/20 rounded-b-xl p-6 min-h-[calc(100vh-100px)]">
         {/* ASCII Header */}
-        <div className="text-green-400 font-mono text-xs mb-6 leading-tight">
+        <div className="text-aptos-blue/70 font-mono text-xs mb-6 leading-tight">
           <pre>{`
-██╗  ██╗██╗   ██╗██████╗ ███████╗██████╗ ███████╗██╗██╗     ██╗     
-██║  ██║╚██╗ ██╔╝██╔══██╗██╔════╝██╔══██╗██╔════╝██║██║     ██║     
-███████║ ╚████╔╝ ██████╔╝█████╗  ██████╔╝█████╗  ██║██║     ██║     
-██╔══██║  ╚██╔╝  ██╔═══╝ ██╔══╝  ██╔══██╗██╔══╝  ██║██║     ██║     
-██║  ██║   ██║   ██║     ███████╗██║  ██║██║     ██║███████╗███████╗
-╚═╝  ╚═╝   ╚═╝   ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝
-                                                                      
-[SYSTEM] HyperFill Autonomous Trading Terminal v2.1.0
-[SYSTEM] Connected to Sei Network (testnet) 
-[SYSTEM] AI Trading Collective: Buffett, Belfort, Lynch & Dalio
-[SYSTEM] Vault Status: ${isConnected && isOnSeiTestnet ? 'ACTIVE' : 'STANDBY'} | Network: ${isOnSeiTestnet ? 'SEI-TESTNET' : 'UNKNOWN'}
-[SYSTEM] "We make money while you sleep" - The HyperFill Team
+██╗  ██╗██╗   ██╗██████╗ ███████╗██████╗ ███╗   ███╗ ██████╗ ██╗   ██╗███████╗
+██║  ██║╚██╗ ██╔╝██╔══██╗██╔════╝██╔══██╗████╗ ████║██╔═══██╗██║   ██║██╔════╝
+███████║ ╚████╔╝ ██████╔╝█████╗  ██████╔╝██╔████╔██║██║   ██║██║   ██║█████╗
+██╔══██║  ╚██╔╝  ██╔═══╝ ██╔══╝  ██╔══██╗██║╚██╔╝██║██║   ██║╚██╗ ██╔╝██╔══╝
+██║  ██║   ██║   ██║     ███████╗██║  ██║██║ ╚═╝ ██║╚██████╔╝ ╚████╔╝ ███████╗
+╚═╝  ╚═╝   ╚═╝   ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝ ╚═════╝   ╚═══╝  ╚══════╝
+
           `}</pre>
+          <div className="mt-2 space-y-1">
+            <div><span className="text-red-400">[SYSTEM]</span> <span className="text-white">HyperMove Autonomous Trading Terminal v2.1.0</span></div>
+            <div><span className="text-red-400">[SYSTEM]</span> <span className="text-aptos-blue">Connected to Aptos Network (testnet)</span></div>
+            <div><span className="text-red-400">[SYSTEM]</span> <span className="text-green-400">AI Trading Collective: Buffett, Belfort, Lynch & Dalio</span></div>
+            <div><span className="text-red-400">[SYSTEM]</span> <span className="text-aptos-blue-light">Aptos' becoming the Global Trading Engine</span></div>
+            <div><span className="text-red-400">[SYSTEM]</span> <span className="text-gray-300">"Wanna see how finance works in a decentralized world?" - The HyperMove Team</span></div>
+          </div>
         </div>
+
 
         {/* Connection Status */}
         {!isConnected && (
           <div className="mb-4 p-3 bg-red-900/20 border border-red-400/20 rounded font-mono text-xs">
             <span className="text-red-400">[ERROR]</span>
             <span className="text-gray-400"> No wallet connection detected. Execute </span>
-            <span className="text-green-400">connect-wallet</span>
+            <span className="text-aptos-blue">connect-wallet</span>
             <span className="text-gray-400"> to establish connection.</span>
           </div>
         )}
 
         {/* Terminal Prompt */}
         <div className="mb-4 text-sm font-mono">
-          <span className="text-green-400">hyperfill@sei</span>
+          <span className="text-aptos-blue font-medium">hypermove@aptos</span>
           <span className="text-gray-400">:</span>
           <span className="text-red-400">~/vault</span>
           <span className="text-gray-400">$ </span>
-          <span className="text-green-400">status --agents --detailed</span>
+          <span className="text-aptos-blue-light">status --agents --detailed</span>
         </div>
 
         {/* Main Grid */}
@@ -877,22 +855,12 @@ export function TradingTerminal() {
         </div>
 
         {/* Bottom Terminal Commands */}
-        <div className="border-t border-green-400/30 pt-4">
+        <div className="border-t border-aptos-blue/20 pt-4">
           <div className="flex items-center space-x-4 mb-3">
             <Button
               variant="ghost"
               size="sm"
-              className="text-xs font-mono hover:bg-green-400/10 text-green-400"
-              onClick={connect}
-              disabled={isConnected || isConnecting}
-            >
-              <Wallet className="h-3 w-3 mr-1" />
-              {isConnected ? "./wallet-connected" : "./connect-wallet"}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs font-mono hover:bg-green-400/10 text-green-400"
+              className="text-xs font-mono hover:bg-aptos-blue/10 text-aptos-blue"
               onClick={loadOrderbook}
               disabled={loading}
             >
@@ -902,20 +870,20 @@ export function TradingTerminal() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-xs font-mono hover:bg-green-400/10 text-green-400"
+              className="text-xs font-mono hover:bg-aptos-blue/10 text-aptos-blue"
               onClick={() => addLog('Config panel opened')}
             >
               <Settings className="h-3 w-3 mr-1" />
               ./config
             </Button>
-            <div className="flex items-center space-x-2 text-green-400 text-xs font-mono">
+            <div className="flex items-center space-x-2 text-aptos-blue-light text-xs font-mono">
               <Power className="h-3 w-3" />
-              <span>DAEMON {isConnected && isOnSeiTestnet ? 'RUNNING' : 'STANDBY'}</span>
+              <span>DAEMON {isConnected && isOnAptosTestnet ? 'RUNNING' : 'STANDBY'}</span>
             </div>
           </div>
 
-          <div className="text-xs font-mono text-green-400">
-            <span className="text-green-400">hyperfill@sei</span>
+          <div className="text-xs font-mono text-aptos-blue-light">
+            <span className="text-aptos-blue font-medium">hypermove@aptos</span>
             <span className="text-gray-400">:</span>
             <span className="text-red-400">~/vault</span>
             <span className="text-gray-400">$ </span>
@@ -925,21 +893,21 @@ export function TradingTerminal() {
       </div>
 
       {/* Status Bar */}
-      <div className="flex items-center justify-between text-xs font-mono mt-2 px-2 py-1 bg-gray-800/50 border border-green-400/30 rounded">
+      <div className="flex items-center justify-between text-xs font-mono mt-2 px-2 py-1 bg-black/80 border border-aptos-blue/20">
         <div className="flex items-center space-x-4">
-          <span className={isConnected && isOnSeiTestnet ? "text-green-400" : "text-red-400"}>●</span>
-          <span className="text-green-400">{isOnSeiTestnet ? "SEI TESTNET" : "DISCONNECTED"}</span>
+          <span className={isConnected && isOnAptosTestnet ? "text-aptos-blue-light" : "text-red-400"}>●</span>
+          <span className="text-aptos-blue-light">{isOnAptosTestnet ? "APTOS TESTNET" : "DISCONNECTED"}</span>
           <span className="text-gray-400">|</span>
-          <span className="text-green-400">STATUS: {isConnected ? (isOnSeiTestnet ? "ACTIVE" : "WRONG_NET") : "OFFLINE"}</span>
+          <span className="text-aptos-blue-light">STATUS: {isConnected ? (isOnAptosTestnet ? "ACTIVE" : "WRONG_NET") : "OFFLINE"}</span>
           <span className="text-gray-400">|</span>
-          <span className="text-green-400">WALLET: {isConnected ? "CONNECTED" : "NONE"}</span>
+          <span className="text-aptos-blue-light">WALLET: {isConnected ? "CONNECTED" : "NONE"}</span>
         </div>
         <div className="flex items-center space-x-4">
-          <span className="text-green-400">LATENCY: {isConnected ? "47ms" : "∞"}</span>
+          <span className="text-aptos-blue-light">LATENCY: {isConnected ? "47ms" : "∞"}</span>
           <span className="text-gray-400">|</span>
-          <span className="text-green-400">AGENTS: {agentRunning ? "4/4" : "0/4"}</span>
+          <span className="text-aptos-blue-light">AGENTS: {agentRunning ? "4/4" : "0/4"}</span>
           <span className="text-gray-400">|</span>
-          <span className="text-green-400">ORDERS: {orderbook ? (orderbook.asks?.length || 0) + (orderbook.bids?.length || 0) : 0}</span>
+          <span className="text-aptos-blue-light">ORDERS: {orderbook ? (orderbook.asks?.length || 0) + (orderbook.bids?.length || 0) : 0}</span>
         </div>
       </div>
 

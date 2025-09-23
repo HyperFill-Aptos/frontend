@@ -52,10 +52,24 @@ export default {
 					DEFAULT: 'hsl(var(--warning))',
 					foreground: 'hsl(var(--warning-foreground))'
 				},
+				aptos: {
+					blue: '#06E4F5',
+					'blue-dark': '#04B5C3',
+					'blue-light': '#34ECFB',
+					'blue-soft': '#E0FCFE',
+					navy: '#0A1628',
+					'navy-light': '#1B2A42',
+					accent: '#00D4FF',
+					success: '#00F587',
+					warning: '#FFB800',
+					error: '#FF3366'
+				},
 				hyperfill: {
 					red: 'hsl(0 85% 60%)',
 					green: 'hsl(120 100% 65%)',
-					orange: 'hsl(25 95% 65%)'
+					orange: 'hsl(25 95% 65%)',
+					blue: '#06E4F5',
+					'blue-dark': '#04B5C3'
 				},
 				popover: {
 					DEFAULT: 'hsl(var(--popover))',
@@ -77,9 +91,11 @@ export default {
 				}
 			},
 			fontFamily: {
+				sans: ['Inter', 'SF Pro Display', 'system-ui', '-apple-system', 'sans-serif'],
 				mono: ['JetBrains Mono', 'Fira Code', 'Monaco', 'Consolas', 'monospace'],
 				terminal: ['JetBrains Mono', 'monospace'],
 				code: ['Fira Code', 'monospace'],
+				display: ['Lexend', 'Inter', 'system-ui', 'sans-serif'],
 			},
 			boxShadow: {
 				'glow': 'var(--shadow-glow)',

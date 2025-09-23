@@ -28,11 +28,11 @@ const tradingMetrics = [
 export function MarketStats() {
   return (
     <div className="space-y-4">
-      {/* SEI Price Card */}
+      {/* APT Price Card */}
       <Card className="bg-card border border-border">
         <div className="p-3">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-bold text-red-400 font-terminal">[MARKET_DATA]</h3>
+            <h3 className="text-sm font-bold text-white font-terminal">[MARKET_DATA]</h3>
             <Badge variant={marketData.isPositive ? "success" : "destructive"} className="text-xs font-mono">
               {marketData.isPositive ? "BULL" : "BEAR"}
             </Badge>
@@ -40,7 +40,7 @@ export function MarketStats() {
           
           <div className="space-y-2 font-mono text-xs">
             <div className="flex justify-between items-center p-2 bg-muted/20 border border-border/50">
-              <span className="text-muted-foreground">sei_price:</span>
+              <span className="text-muted-foreground">apt_price:</span>
               <div className="flex items-center space-x-2">
                 <span className="text-foreground font-bold text-sm">{marketData.price}</span>
                 <span className={`${marketData.isPositive ? 'text-success' : 'text-destructive'}`}>
@@ -66,7 +66,7 @@ export function MarketStats() {
       {/* Trading Metrics */}
       <Card className="bg-card border border-border">
         <div className="p-3 border-b border-border">
-          <h3 className="text-sm font-bold text-red-400 font-terminal">[TRADING_METRICS]</h3>
+          <h3 className="text-sm font-bold text-white font-terminal">[TRADING_METRICS]</h3>
           <p className="text-xs text-muted-foreground font-mono">live performance data</p>
         </div>
         <div className="p-3 space-y-1 font-mono text-xs">
