@@ -51,37 +51,37 @@ export const useVault = () => {
         aptBalanceResult,
       ] = await Promise.all([
         client.view({
-          function: `${CONTRACTS.VAULT_ADDRESS}::hyperfill_vault::get_user_shares`,
+          function: `${CONTRACTS.VAULT_ADDRESS}::hypermover_vault::get_user_shares`,
           arguments: [CONTRACTS.VAULT_ADDRESS, account],
           type_arguments: [],
         }),
         client.view({
-          function: `${CONTRACTS.VAULT_ADDRESS}::hyperfill_vault::get_total_assets`,
+          function: `${CONTRACTS.VAULT_ADDRESS}::hypermover_vault::get_total_assets`,
           arguments: [CONTRACTS.VAULT_ADDRESS],
           type_arguments: [],
         }),
         client.view({
-          function: `${CONTRACTS.VAULT_ADDRESS}::hyperfill_vault::get_total_shares`,
+          function: `${CONTRACTS.VAULT_ADDRESS}::hypermover_vault::get_total_shares`,
           arguments: [CONTRACTS.VAULT_ADDRESS],
           type_arguments: [],
         }),
         client.view({
-          function: `${CONTRACTS.VAULT_ADDRESS}::hyperfill_vault::get_share_price`,
+          function: `${CONTRACTS.VAULT_ADDRESS}::hypermover_vault::get_share_price`,
           arguments: [CONTRACTS.VAULT_ADDRESS],
           type_arguments: [],
         }),
         client.view({
-          function: `${CONTRACTS.VAULT_ADDRESS}::hyperfill_vault::get_available_assets`,
+          function: `${CONTRACTS.VAULT_ADDRESS}::hypermover_vault::get_available_assets`,
           arguments: [CONTRACTS.VAULT_ADDRESS],
           type_arguments: [],
         }),
         client.view({
-          function: `${CONTRACTS.VAULT_ADDRESS}::hyperfill_vault::get_min_deposit`,
+          function: `${CONTRACTS.VAULT_ADDRESS}::hypermover_vault::get_min_deposit`,
           arguments: [CONTRACTS.VAULT_ADDRESS],
           type_arguments: [],
         }),
         client.view({
-          function: `${CONTRACTS.VAULT_ADDRESS}::hyperfill_vault::is_paused`,
+          function: `${CONTRACTS.VAULT_ADDRESS}::hypermover_vault::is_paused`,
           arguments: [CONTRACTS.VAULT_ADDRESS],
           type_arguments: [],
         }),
@@ -130,7 +130,7 @@ export const useVault = () => {
       const amountInOctas = Math.floor(parseFloat(amount) * 100000000);
 
       const payload = {
-        function: `${CONTRACTS.VAULT_ADDRESS}::hyperfill_vault::deposit_liquidity`,
+        function: `${CONTRACTS.VAULT_ADDRESS}::hypermover_vault::deposit_liquidity`,
         type_arguments: [],
         arguments: [CONTRACTS.VAULT_ADDRESS, amountInOctas.toString()],
       };
@@ -170,7 +170,7 @@ export const useVault = () => {
       setLoading(true);
 
       const payload = {
-        function: `${CONTRACTS.VAULT_ADDRESS}::hyperfill_vault::withdraw_profits`,
+        function: `${CONTRACTS.VAULT_ADDRESS}::hypermover_vault::withdraw_profits`,
         type_arguments: [],
         arguments: [CONTRACTS.VAULT_ADDRESS],
       };
