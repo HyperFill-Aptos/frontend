@@ -1,7 +1,8 @@
 export const CONTRACTS = {
-    VAULT_ADDRESS: "0xe22a7dbf85b88f1c950b96923e29f0213121002f296c0572549f2a6a7e7fd6f5",
+    VAULT_ADDRESS: "0x96d2b185a5b581f98dc1df57b59a5875eb53b3a65ef7a9b0d5e42aa44c3b8b82",
     APT_ADDRESS: "0x1::aptos_coin::AptosCoin",
-    SETTLEMENT_ADDRESS: "0xe22a7dbf85b88f1c950b96923e29f0213121002f296c0572549f2a6a7e7fd6f5",
+    SETTLEMENT_ADDRESS: "0x96d2b185a5b581f98dc1df57b59a5875eb53b3a65ef7a9b0d5e42aa44c3b8b82",
+    ORDERBOOK_ADDRESS: "0x96d2b185a5b581f98dc1df57b59a5875eb53b3a65ef7a9b0d5e42aa44c3b8b82",
     USDT_ADDRESS: "0x1::coin::CoinStore<0xf22bede237a07e121b56d91a491eb7bcdfd1f5907926a9e58338f964a01b17fa::asset::USDT>",
   } as const;
 
@@ -36,6 +37,20 @@ export const CONTRACTS = {
     ASSET: "asset",
     PREVIEW_DEPOSIT: "preview_deposit",
     PREVIEW_REDEEM: "preview_redeem",
+    GET_VAULT_STATE: "get_vault_state",
+    MOVE_FROM_VAULT_TO_WALLET: "move_from_vault_to_wallet",
+    MOVE_FROM_WALLET_TO_VAULT: "move_from_wallet_to_vault",
+  } as const;
+
+  export const ORDERBOOK_FUNCTIONS = {
+    CREATE_MARKET: "create_market",
+    PLACE_LIMIT_ORDER: "place_limit_order",
+    CANCEL_ORDER: "cancel_order",
+    GET_MARKET_INFO: "get_market_info",
+    GET_BEST_BID_ASK: "get_best_bid_ask",
+    GET_ORDER_BOOK_DEPTH: "get_order_book_depth",
+    GET_USER_ORDERS: "get_user_orders",
+    GET_MARKET_STATS: "get_market_stats",
   } as const;
 
   export const VAULT_EVENTS = {
