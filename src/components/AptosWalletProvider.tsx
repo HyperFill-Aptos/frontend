@@ -13,7 +13,7 @@ export function AptosWalletProvider({ children }: AptosWalletProviderProps) {
       autoConnect={false}
       dappConfig={{
         network: Network.TESTNET,
-        aptosConnectDappId: "hyperfill-dapp",
+        aptosConnectDappId: "hypermover-dapp",
       }}
       onError={(error) => {
         console.log('Wallet connection error:', error);

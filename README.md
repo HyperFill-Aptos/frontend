@@ -1,19 +1,19 @@
- # HyperFill Frontend
+ # HyperMover Frontend
 
  ```
-██╗  ██╗██╗   ██╗██████╗ ███████╗██████╗ ███████╗██╗██╗     ██╗     
-██║  ██║╚██╗ ██╔╝██╔══██╗██╔════╝██╔══██╗██╔════╝██║██║     ██║     
-███████║ ╚████╔╝ ██████╔╝█████╗  ██████╔╝█████╗  ██║██║     ██║     
-██╔══██║  ╚██╔╝  ██╔═══╝ ██╔══╝  ██╔══██╗██╔══╝  ██║██║     ██║     
-██║  ██║   ██║   ██║     ███████╗██║  ██║██║     ██║███████╗███████╗
-╚═╝  ╚═╝   ╚═╝   ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝
+██╗  ██╗██╗   ██╗██████╗ ███████╗██████╗ ███╗   ███╗ ██████╗ ██╗   ██╗███████╗██████╗
+██║  ██║╚██╗ ██╔╝██╔══██╗██╔════╝██╔══██╗████╗ ████║██╔═══██╗██║   ██║██╔════╝██╔══██╗
+███████║ ╚████╔╝ ██████╔╝█████╗  ██████╔╝██╔████╔██║██║   ██║██║   ██║█████╗  ██████╔╝
+██╔══██║  ╚██╔╝  ██╔═══╝ ██╔══╝  ██╔══██╗██║╚██╔╝██║██║   ██║╚██╗ ██╔╝██╔══╝  ██╔══██╗
+██║  ██║   ██║   ██║     ███████╗██║  ██║██║ ╚═╝ ██║╚██████╔╝ ╚████╔╝ ███████╗██║  ██║
+╚═╝  ╚═╝   ╚═╝   ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝ ╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═╝
 
-          First AI Market Making Vault on SEI Network 
-              
+            First AI Market Making Vault on Aptos Network
+
 ```
 
 
-A DeFi vault management and trading terminal built with React and TypeScript. The application is an interface for managing vault deposits/withdrawals and trading operations on SEI through an AI system with multiple agents.
+A DeFi vault management and trading terminal built with React and TypeScript. The application is an interface for managing vault deposits/withdrawals and trading operations on Aptos through an AI system with multiple agents.
 
 ## Why Terminal Frontend?
 
@@ -33,7 +33,7 @@ The decision to implement a terminal interface stems from several technical and 
 
 ### Architecture Layer
 
-HyperFill follows a layered architecture pattern with clear separation of concerns:
+HyperMover follows a layered architecture pattern with clear separation of concerns:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -101,7 +101,7 @@ const useVault = () => {
 
 ### Trading System
 
-HyperFill implements AI trading system with four specialized agents, each modeled after legendary traders:
+HyperMover implements AI trading system with four specialized agents, each modeled after legendary traders:
 
 #### 1. Buffett Agent (Analyst)
 - **Role**: Market analysis & long-term value assessment
@@ -240,7 +240,7 @@ Withdrawal operations use a preview function to calculate expected returns befor
 
 ## UI Component Library
 
-HyperFill includes a complete set of UI components built on shadcn/ui and Radix UI:
+HyperMover includes a complete set of UI components built on shadcn/ui and Radix UI:
 
 ### Core Components
 - **Form Components**: Input, Label, Textarea, Select, Checkbox, Radio Group
@@ -255,7 +255,7 @@ HyperFill includes a complete set of UI components built on shadcn/ui and Radix 
 - **Input Components**: Input OTP, Command, Context Menu, Menubar
 - **Utility Components**: Resizable panels, Collapsible sections
 
-## How to Use HyperFill
+## How to Use HyperMover
 
 ### Getting Started
 
@@ -274,8 +274,8 @@ HyperFill includes a complete set of UI components built on shadcn/ui and Radix 
    - **Currency Symbol**: SEI
    - **Block Explorer**: `https://seitrace.com`
 
-#### 3. Accessing HyperFill
-1. Navigate to the HyperFill application
+#### 3. Accessing HyperMover
+1. Navigate to the HyperMover application
 2. Click "Connect Wallet" in the top-right corner
 3. Approve the connection in MetaMask
 4. Ensure you're connected to SEI Testnet

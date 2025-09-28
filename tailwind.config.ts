@@ -64,7 +64,7 @@ export default {
 					warning: '#FFB800',
 					error: '#FF3366'
 				},
-				hyperfill: {
+				hypermover: {
 					red: 'hsl(0 85% 60%)',
 					green: 'hsl(120 100% 65%)',
 					orange: 'hsl(25 95% 65%)',
@@ -131,18 +131,18 @@ export default {
 				},
 				'terminal-glow': {
 					'0%, 100%': {
-						boxShadow: '0 0 20px hsl(var(--hyperfill-green) / 0.5)'
+						boxShadow: '0 0 20px hsl(var(--hypermover-green) / 0.5)'
 					},
 					'50%': {
-						boxShadow: '0 0 30px hsl(var(--hyperfill-green) / 0.8)'
+						boxShadow: '0 0 30px hsl(var(--hypermover-green) / 0.8)'
 					}
 				},
 				'red-glow': {
 					'0%, 100%': {
-						boxShadow: '0 0 15px hsl(var(--hyperfill-red) / 0.4)'
+						boxShadow: '0 0 15px hsl(var(--hypermover-red) / 0.4)'
 					},
 					'50%': {
-						boxShadow: '0 0 25px hsl(var(--hyperfill-red) / 0.7)'
+						boxShadow: '0 0 25px hsl(var(--hypermover-red) / 0.7)'
 					}
 				},
 				'typing': {
