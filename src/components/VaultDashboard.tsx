@@ -11,12 +11,13 @@ import { useVault } from '@/hooks/useVault';
 
 export const VaultDashboard = () => {
   const { account, isConnected } = useWallet();
-  const { stats, loading, refreshing, deposit, withdraw, approveAPT, refreshStats } = useVault();
+  const { stats, loading, refreshing, deposit, withdraw, approveAPT, requestMockTokens, refreshStats } = useVault();
   const { toast } = useToast();
   
   const [depositAmount, setDepositAmount] = useState('');
   const [isDepositing, setIsDepositing] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [isRequestingTokens, setIsRequestingTokens] = useState(false);
 
   const handleDeposit = async () => {
     if (!depositAmount || parseFloat(depositAmount) <= 0) {
@@ -31,16 +32,16 @@ export const VaultDashboard = () => {
     if (stats && parseFloat(depositAmount) < parseFloat(stats.minDeposit)) {
       toast({
         title: "Amount too small", 
-        description: `Minimum deposit is ${stats.minDeposit} APT`,
+        description: `Minimum deposit is ${stats.minDeposit} tokens`,
         variant: "destructive",
       });
       return;
     }
 
-    if (stats && parseFloat(depositAmount) > parseFloat(stats.aptBalance)) {
+    if (stats && parseFloat(depositAmount) > parseFloat(stats.mockTokenBalance)) {
       toast({
         title: "Insufficient balance",
-        description: "You don't have enough APT",
+        description: "You don't have enough mock tokens",
         variant: "destructive",
       });
       return;
@@ -53,7 +54,7 @@ export const VaultDashboard = () => {
       if (result.success) {
         toast({
           title: "Deposit successful!",
-          description: `Deposited ${depositAmount} APT and received ${result.shares} shares`,
+          description: `Deposited ${depositAmount} tokens and received ${result.shares} shares`,
         });
         setDepositAmount('');
       } else {
@@ -91,7 +92,7 @@ export const VaultDashboard = () => {
       if (result.success) {
         toast({
           title: "Withdrawal successful!",
-          description: `Withdrew ${result.assets} APT`,
+          description: `Withdrew ${result.assets} tokens`,
         });
       } else {
         toast({
@@ -131,6 +132,34 @@ export const VaultDashboard = () => {
     }
   };
 
+  const handleRequestTokens = async () => {
+    setIsRequestingTokens(true);
+    try {
+      const result = await requestMockTokens("1000");
+      
+      if (result.success) {
+        toast({
+          title: "Tokens received!",
+          description: "Successfully received 1000 mock tokens from faucet",
+        });
+      } else {
+        toast({
+          title: "Faucet failed",
+          description: result.error || "Unknown error",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Faucet failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRequestingTokens(false);
+    }
+  };
+
   if (!isConnected) {
     return (
       <div className="bg-black border border-red-400/30 p-6 font-mono">
@@ -162,11 +191,11 @@ export const VaultDashboard = () => {
     <div className="space-y-4">
       <div className="bg-black border border-red-400/30 p-4 font-mono">
         <div className="text-red-400 font-terminal text-sm mb-3">[VAULT_STATS]</div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
           <div className="bg-muted/20 border border-border/50 p-3">
-            <div className="text-xs text-muted-foreground mb-1">apt_balance:</div>
+            <div className="text-xs text-muted-foreground mb-1">mock_token_balance:</div>
             <div className="text-sm font-mono text-foreground">
-              {stats ? parseFloat(stats.aptBalance).toFixed(4) : '0.0000'}
+              {stats ? parseFloat(stats.mockTokenBalance).toFixed(4) : '0.0000'}
             </div>
           </div>
 
@@ -180,7 +209,7 @@ export const VaultDashboard = () => {
           <div className="bg-muted/20 border border-border/50 p-3">
             <div className="text-xs text-muted-foreground mb-1">share_price:</div>
             <div className="text-sm font-mono text-foreground">
-              {stats ? parseFloat(stats.sharePrice).toFixed(4) : '1.0000'}
+              {stats ? stats.sharePrice : '1.0000'}
             </div>
           </div>
 
@@ -190,21 +219,46 @@ export const VaultDashboard = () => {
               {stats ? parseFloat(stats.totalAssets).toFixed(2) : '0.00'}
             </div>
           </div>
+
+          <div className="bg-muted/20 border border-border/50 p-3">
+            <div className="text-xs text-muted-foreground mb-1">user_profits:</div>
+            <div className="text-sm font-mono text-foreground">
+              {stats ? parseFloat(stats.userProfits).toFixed(4) : '0.0000'}
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-black border border-red-400/30 p-4 font-mono">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-red-400 font-terminal text-sm">[DEPOSIT_APT]</div>
-            {stats?.isPaused && (
-              <Badge variant="destructive" className="text-xs font-mono">PAUSED</Badge>
-            )}
+            <div className="text-red-400 font-terminal text-sm">[DEPOSIT_TOKENS]</div>
+            <div className="flex items-center gap-2">
+              {stats?.isPaused && (
+                <Badge variant="destructive" className="text-xs font-mono">PAUSED</Badge>
+              )}
+              <Button
+                onClick={handleRequestTokens}
+                disabled={isRequestingTokens || loading}
+                variant="outline"
+                size="sm"
+                className="text-xs font-mono border-green-400/30 hover:bg-green-400/10"
+              >
+                {isRequestingTokens ? (
+                  <>
+                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                    requesting...
+                  </>
+                ) : (
+                  'faucet_1000'
+                )}
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-3">
             <div>
-              <div className="text-xs text-muted-foreground mb-1">amount_apt:</div>
+              <div className="text-xs text-muted-foreground mb-1">amount_tokens:</div>
               <Input
                 type="number"
                 placeholder="0.0"
@@ -214,7 +268,7 @@ export const VaultDashboard = () => {
                 className="bg-muted/20 border-border/50 font-mono text-sm"
               />
               <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                <span>balance: {stats ? parseFloat(stats.aptBalance).toFixed(4) : '0.0000'}</span>
+                <span>balance: {stats ? parseFloat(stats.mockTokenBalance).toFixed(4) : '0.0000'}</span>
                 <span>min: {stats ? parseFloat(stats.minDeposit).toFixed(2) : '1.00'}</span>
               </div>
             </div>
@@ -265,7 +319,7 @@ export const VaultDashboard = () => {
                 </span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">estimated_apt:</span>
+                <span className="text-muted-foreground">estimated_tokens:</span>
                 <span className="text-foreground font-mono">
                   {stats ? (parseFloat(stats.userShares) * parseFloat(stats.sharePrice)).toFixed(4) : '0.0000'}
                 </span>

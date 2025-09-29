@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useWallet } from './useWallet';
-import { CONTRACTS } from '@/lib/contracts';
+import { CONTRACTS, VAULT_FUNCTIONS, MOCK_TOKEN_FUNCTIONS } from '@/lib/contracts';
+import { Aptos, AptosConfig, Network } from '@aptos-labs/ts-sdk';
 
 export interface VaultStats {
   userShares: string;
@@ -11,8 +12,11 @@ export interface VaultStats {
   availableAssets: string;
   minDeposit: string;
   isPaused: boolean;
+  mockTokenBalance: string;
   aptBalance: string;
   aptAllowance: string;
+  userProfits: string;
+  userTotalDeposited: string;
 }
 
 export interface DepositResult {
@@ -30,94 +34,264 @@ export interface WithdrawResult {
 }
 
 export const useVault = () => {
-  const { account, isConnected, signAndSubmitTransaction, client } = useWallet();
+  const { account, isConnected, signAndSubmitTransaction } = useWallet();
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<VaultStats | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Create dedicated Aptos client for vault operations
+  const [aptosClient] = useState(() => {
+    const config = new AptosConfig({ network: Network.TESTNET });
+    return new Aptos(config);
+  });
+
   const fetchStats = useCallback(async () => {
-    if (!account || !client) return;
+    if (!account || !aptosClient) return;
 
     setRefreshing(true);
     try {
+      console.log('Fetching vault stats for account:', account);
+      console.log('Using vault address:', CONTRACTS.VAULT_ADDRESS);
+      console.log('Using mock token address:', CONTRACTS.MOCK_TOKEN_ADDRESS);
+      
+      // First, let's check what modules are deployed at this address
+      try {
+        const accountModules = await aptosClient.getAccountModules({
+          accountAddress: CONTRACTS.VAULT_ADDRESS,
+        });
+        console.log('Modules deployed at vault address:', accountModules.map(m => m.abi?.name));
+        
+        if (accountModules.length === 0) {
+          console.error('No modules found at this address. Contracts may not be deployed.');
+          setStats({
+            userShares: '0.0000',
+            userBalance: '0.0000', 
+            totalAssets: '0.0000',
+            totalSupply: '0.0000',
+            sharePrice: '1.0000',
+            availableAssets: '0.0000',
+            minDeposit: '1.0000',
+            isPaused: false,
+            mockTokenBalance: '0.0000',
+            aptBalance: '0.0000',
+            aptAllowance: '999999',
+            userProfits: '0.0000',
+            userTotalDeposited: '0.0000',
+          });
+          return;
+        }
+        
+        // Try a simple view function to test contract accessibility
+        const testResult = await aptosClient.view({
+          payload: {
+            function: `${CONTRACTS.VAULT_ADDRESS}::vault::get_owner`,
+            functionArguments: [CONTRACTS.VAULT_ADDRESS],
+            typeArguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+          }
+        });
+        console.log('Contract owner test result:', testResult);
+      } catch (testError) {
+        console.error('Contract access error:', testError);
+        // Continue with mock data for testing
+        setStats({
+          userShares: '0.0000',
+          userBalance: '0.0000', 
+          totalAssets: '0.0000',
+          totalSupply: '0.0000',
+          sharePrice: '1.0000',
+          availableAssets: '0.0000',
+          minDeposit: '1.0000',
+          isPaused: false,
+          mockTokenBalance: '0.0000',
+          aptBalance: '0.0000',
+          aptAllowance: '999999',
+          userProfits: '0.0000',
+          userTotalDeposited: '0.0000',
+        });
+        return;
+      }
+      
       const [
+        vaultStateResult,
         userSharesResult,
-        totalAssetsResult,
-        totalSharesResult,
-        sharePriceResult,
         availableAssetsResult,
         minDepositResult,
         isPausedResult,
+        userProfitsResult,
+        userTotalDepositedResult,
+        mockTokenBalanceResult,
         aptBalanceResult,
-      ] = await Promise.all([
-        client.view({
-          function: `${CONTRACTS.VAULT_ADDRESS}::hypermover_vault::get_user_shares`,
-          arguments: [CONTRACTS.VAULT_ADDRESS, account],
-          type_arguments: [],
+      ] = await Promise.allSettled([
+        // Get comprehensive vault state (vault_balance, total_assets, total_supply, share_price, accumulated_fees)
+        aptosClient.view({
+          payload: {
+            function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.GET_VAULT_STATE}`,
+            functionArguments: [CONTRACTS.VAULT_ADDRESS],
+            typeArguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+          }
         }),
-        client.view({
-          function: `${CONTRACTS.VAULT_ADDRESS}::hypermover_vault::get_total_assets`,
-          arguments: [CONTRACTS.VAULT_ADDRESS],
-          type_arguments: [],
+        // Get user's share balance
+        aptosClient.view({
+          payload: {
+            function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.GET_USER_SHARE_BALANCE}`,
+            functionArguments: [CONTRACTS.VAULT_ADDRESS, account],
+            typeArguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+          }
         }),
-        client.view({
-          function: `${CONTRACTS.VAULT_ADDRESS}::hypermover_vault::get_total_shares`,
-          arguments: [CONTRACTS.VAULT_ADDRESS],
-          type_arguments: [],
+        // Get available assets for trading
+        aptosClient.view({
+          payload: {
+            function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.GET_AVAILABLE_ASSETS}`,
+            functionArguments: [CONTRACTS.VAULT_ADDRESS],
+            typeArguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+          }
         }),
-        client.view({
-          function: `${CONTRACTS.VAULT_ADDRESS}::hypermover_vault::get_share_price`,
-          arguments: [CONTRACTS.VAULT_ADDRESS],
-          type_arguments: [],
+        // Get minimum deposit requirement
+        aptosClient.view({
+          payload: {
+            function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.GET_MIN_DEPOSIT}`,
+            functionArguments: [CONTRACTS.VAULT_ADDRESS],
+            typeArguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+          }
         }),
-        client.view({
-          function: `${CONTRACTS.VAULT_ADDRESS}::hypermover_vault::get_available_assets`,
-          arguments: [CONTRACTS.VAULT_ADDRESS],
-          type_arguments: [],
+        // Check if vault is paused
+        aptosClient.view({
+          payload: {
+            function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.IS_PAUSED}`,
+            functionArguments: [CONTRACTS.VAULT_ADDRESS],
+            typeArguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+          }
         }),
-        client.view({
-          function: `${CONTRACTS.VAULT_ADDRESS}::hypermover_vault::get_min_deposit`,
-          arguments: [CONTRACTS.VAULT_ADDRESS],
-          type_arguments: [],
+        // Get user's profits
+        aptosClient.view({
+          payload: {
+            function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.GET_USER_PROFITS}`,
+            functionArguments: [CONTRACTS.VAULT_ADDRESS, account],
+            typeArguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+          }
         }),
-        client.view({
-          function: `${CONTRACTS.VAULT_ADDRESS}::hypermover_vault::is_paused`,
-          arguments: [CONTRACTS.VAULT_ADDRESS],
-          type_arguments: [],
+        // Get user's total deposited amount
+        aptosClient.view({
+          payload: {
+            function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.GET_USER_TOTAL_DEPOSITED}`,
+            functionArguments: [CONTRACTS.VAULT_ADDRESS, account],
+            typeArguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+          }
         }),
-        client.getAccountResource({
+        // Get user's mock token balance
+        aptosClient.view({
+          payload: {
+            function: `${CONTRACTS.VAULT_ADDRESS}::mock_token::${MOCK_TOKEN_FUNCTIONS.GET_BALANCE}`,
+            functionArguments: [account],
+            typeArguments: [],
+          }
+        }).catch(() => [0]),
+        // Get APT balance
+        aptosClient.getAccountResource({
           accountAddress: account,
           resourceType: `0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>`,
-        }),
+        }).catch(() => ({ coin: { value: '0' } })),
       ]);
+      
+      console.log('Results:', {
+        vaultStateResult: vaultStateResult.status === 'fulfilled' ? vaultStateResult.value : vaultStateResult.reason,
+        userSharesResult: userSharesResult.status === 'fulfilled' ? userSharesResult.value : userSharesResult.reason,
+        mockTokenBalanceResult: mockTokenBalanceResult.status === 'fulfilled' ? mockTokenBalanceResult.value : mockTokenBalanceResult.reason,
+      });
 
-      const formatApt = (value: any) => {
+      const formatToken = (value: any) => {
         const numValue = typeof value === 'string' ? parseInt(value) : value;
+        // Assuming 8 decimals for mock token (same as APT)
         return (numValue / 100000000).toFixed(4);
       };
 
+      const formatSharePrice = (value: any) => {
+        const numValue = typeof value === 'string' ? parseInt(value) : value;
+        // Share price is scaled by 1e6 in the contract
+        return (numValue / 1000000).toFixed(4);
+      };
+
+      // Extract vault state values safely
+      const vaultData = vaultStateResult.status === 'fulfilled' ? vaultStateResult.value : null;
+      const [, totalAssets, totalSupply, sharePrice] = vaultData || [0, 0, 0, 1000000, 0];
+
+      // Extract results safely
+      const userShares = userSharesResult.status === 'fulfilled' ? (userSharesResult.value?.[0] || 0) : 0;
+      const availableAssets = availableAssetsResult.status === 'fulfilled' ? (availableAssetsResult.value?.[0] || 0) : 0;
+      const minDeposit = minDepositResult.status === 'fulfilled' ? (minDepositResult.value?.[0] || 100000000) : 100000000;
+      const isPaused = isPausedResult.status === 'fulfilled' ? Boolean(isPausedResult.value?.[0]) : false;
+      const userProfits = userProfitsResult.status === 'fulfilled' ? (userProfitsResult.value?.[0] || 0) : 0;
+      const userTotalDeposited = userTotalDepositedResult.status === 'fulfilled' ? (userTotalDepositedResult.value?.[0] || 0) : 0;
+      const mockTokenBalance = mockTokenBalanceResult.status === 'fulfilled' ? (mockTokenBalanceResult.value || 0) : 0;
+      const aptBalance = aptBalanceResult.status === 'fulfilled' ? (aptBalanceResult.value?.coin?.value || 0) : 0;
+      
       setStats({
-        userShares: formatApt(userSharesResult[0] || 0),
-        userBalance: formatApt(userSharesResult[0] || 0),
-        totalAssets: formatApt(totalAssetsResult[0] || 0),
-        totalSupply: formatApt(totalSharesResult[0] || 0),
-        sharePrice: formatApt(sharePriceResult[0] || 1000000000000000000),
-        availableAssets: formatApt(availableAssetsResult[0] || 0),
-        minDeposit: formatApt(minDepositResult[0] || 100000000),
-        isPaused: isPausedResult[0] || false,
-        aptBalance: formatApt(aptBalanceResult.coin.value || 0),
+        userShares: formatToken(userShares),
+        userBalance: formatToken(userShares),
+        totalAssets: formatToken(totalAssets || 0),
+        totalSupply: formatToken(totalSupply || 0),
+        sharePrice: formatSharePrice(sharePrice || 1000000),
+        availableAssets: formatToken(availableAssets),
+        minDeposit: formatToken(minDeposit),
+        isPaused,
+        mockTokenBalance: formatToken(mockTokenBalance),
+        aptBalance: formatToken(aptBalance),
         aptAllowance: '999999',
+        userProfits: formatToken(userProfits),
+        userTotalDeposited: formatToken(userTotalDeposited),
       });
     } catch (error) {
       console.error('Error fetching vault stats:', error);
     } finally {
       setRefreshing(false);
     }
-  }, [account, client]);
+  }, [account, aptosClient]);
 
   const approveAPT = useCallback(async (amount: string): Promise<boolean> => {
     return true;
   }, []);
+
+  const requestMockTokens = useCallback(async (amount: string = "1000"): Promise<DepositResult> => {
+    if (!account || !signAndSubmitTransaction) {
+      return { success: false, error: 'Wallet not connected' };
+    }
+
+    try {
+      setLoading(true);
+
+      const amountInOctas = Math.floor(parseFloat(amount) * 100000000);
+
+      const payload = {
+        function: `${CONTRACTS.VAULT_ADDRESS}::mock_token::${MOCK_TOKEN_FUNCTIONS.FAUCET}`,
+        type_arguments: [],
+        arguments: [amountInOctas.toString()],
+      };
+
+      const response = await signAndSubmitTransaction(payload);
+
+      if (!response || !response.hash) {
+        throw new Error('Transaction failed');
+      }
+
+      await aptosClient.waitForTransaction(response.hash);
+
+      await fetchStats();
+
+      return {
+        success: true,
+        txHash: response.hash,
+        shares: amount,
+      };
+    } catch (error: any) {
+      console.error('Error requesting mock tokens:', error);
+      return {
+        success: false,
+        error: error.message || 'Transaction failed'
+      };
+    } finally {
+      setLoading(false);
+    }
+  }, [account, signAndSubmitTransaction, aptosClient, fetchStats]);
 
   const deposit = useCallback(async (amount: string): Promise<DepositResult> => {
     if (!account || !signAndSubmitTransaction) {
@@ -130,9 +304,9 @@ export const useVault = () => {
       const amountInOctas = Math.floor(parseFloat(amount) * 100000000);
 
       const payload = {
-        function: `${CONTRACTS.VAULT_ADDRESS}::hypermover_vault::deposit_liquidity`,
-        type_arguments: [],
-        arguments: [CONTRACTS.VAULT_ADDRESS, amountInOctas.toString()],
+        function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.DEPOSIT_LIQUIDITY}`,
+        type_arguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+        arguments: [amountInOctas.toString()],
       };
 
       const response = await signAndSubmitTransaction(payload);
@@ -141,7 +315,7 @@ export const useVault = () => {
         throw new Error('Transaction failed');
       }
 
-      await client?.waitForTransaction(response.hash);
+      await aptosClient.waitForTransaction(response.hash);
 
       await fetchStats();
 
@@ -159,7 +333,7 @@ export const useVault = () => {
     } finally {
       setLoading(false);
     }
-  }, [account, signAndSubmitTransaction, client, fetchStats]);
+  }, [account, signAndSubmitTransaction, aptosClient, fetchStats]);
 
   const withdraw = useCallback(async (): Promise<WithdrawResult> => {
     if (!account || !signAndSubmitTransaction) {
@@ -170,9 +344,9 @@ export const useVault = () => {
       setLoading(true);
 
       const payload = {
-        function: `${CONTRACTS.VAULT_ADDRESS}::hypermover_vault::withdraw_profits`,
-        type_arguments: [],
-        arguments: [CONTRACTS.VAULT_ADDRESS],
+        function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.WITHDRAW_PROFITS}`,
+        type_arguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+        arguments: [],
       };
 
       const response = await signAndSubmitTransaction(payload);
@@ -181,7 +355,7 @@ export const useVault = () => {
         throw new Error('Transaction failed');
       }
 
-      await client?.waitForTransaction(response.hash);
+      await aptosClient.waitForTransaction(response.hash);
 
       await fetchStats();
 
@@ -199,7 +373,7 @@ export const useVault = () => {
     } finally {
       setLoading(false);
     }
-  }, [account, signAndSubmitTransaction, client, stats, fetchStats]);
+  }, [account, signAndSubmitTransaction, aptosClient, stats, fetchStats]);
 
   useEffect(() => {
     if (isConnected && account) {
@@ -216,6 +390,7 @@ export const useVault = () => {
     deposit,
     withdraw,
     approveAPT,
+    requestMockTokens,
     refreshStats: fetchStats,
   };
 };

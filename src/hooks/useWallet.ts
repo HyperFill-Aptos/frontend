@@ -7,12 +7,11 @@ export interface WalletState {
   isConnected: boolean;
   isConnecting: boolean;
   publicKey: string | null;
-  walletType: 'aptos' | 'metamask' | 'martian' | null;
+  walletType: 'aptos' | 'martian' | null;
 }
 
 declare global {
   interface Window {
-    ethereum?: any;
     martian?: any;
   }
 }
@@ -28,48 +27,16 @@ export const useWallet = () => {
     network,
   } = useAptosWallet();
 
-  const [metamaskAccount, setMetamaskAccount] = useState<string | null>(null);
-  const [metamaskConnected, setMetamaskConnected] = useState(false);
-  const [metamaskConnecting, setMetamaskConnecting] = useState(false);
   const [martianAccount, setMartianAccount] = useState<string | null>(null);
   const [martianConnected, setMartianConnected] = useState(false);
   const [martianConnecting, setMartianConnecting] = useState(false);
-  const [walletType, setWalletType] = useState<'aptos' | 'metamask' | 'martian' | null>(null);
+  const [walletType, setWalletType] = useState<'aptos' | 'martian' | null>(null);
 
   const [client] = useState(() => {
     const config = new AptosConfig({ network: Network.TESTNET });
     return new Aptos(config);
   });
 
-  // Check MetaMask connection on load
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.ethereum) {
-      window.ethereum.request({ method: 'eth_accounts' })
-        .then((accounts: string[]) => {
-          if (accounts.length > 0) {
-            setMetamaskAccount(accounts[0]);
-            setMetamaskConnected(true);
-            setWalletType('metamask');
-          }
-        })
-        .catch(console.error);
-
-      // Listen for account changes
-      window.ethereum.on('accountsChanged', (accounts: string[]) => {
-        if (accounts.length > 0) {
-          setMetamaskAccount(accounts[0]);
-          setMetamaskConnected(true);
-          setWalletType('metamask');
-        } else {
-          setMetamaskAccount(null);
-          setMetamaskConnected(false);
-          if (walletType === 'metamask') {
-            setWalletType(null);
-          }
-        }
-      });
-    }
-  }, []);
 
   // Check Martian wallet connection on load
   useEffect(() => {
@@ -111,8 +78,6 @@ export const useWallet = () => {
     if (aptosConnected && aptosAccount) {
       setWalletType('aptos');
       // Disconnect other wallets if Aptos connects
-      setMetamaskConnected(false);
-      setMetamaskAccount(null);
       setMartianConnected(false);
       setMartianAccount(null);
     } else if (!aptosConnected && walletType === 'aptos') {
@@ -122,8 +87,6 @@ export const useWallet = () => {
 
   const connectAptos = useCallback(async () => {
     try {
-      setMetamaskConnected(false);
-      setMetamaskAccount(null);
       setMartianConnected(false);
       setMartianAccount(null);
       await aptosConnect();
@@ -145,8 +108,6 @@ export const useWallet = () => {
       if (aptosConnected) {
         await aptosDisconnect();
       }
-      setMetamaskConnected(false);
-      setMetamaskAccount(null);
 
       const account = await window.martian.connect();
       
@@ -163,45 +124,11 @@ export const useWallet = () => {
     }
   }, [aptosConnected, aptosDisconnect]);
 
-  const connectMetaMask = useCallback(async () => {
-    if (!window.ethereum) {
-      window.open('https://metamask.io/download/', '_blank');
-      return;
-    }
-
-    try {
-      setMetamaskConnecting(true);
-      // Disconnect other wallets if MetaMask connects
-      if (aptosConnected) {
-        await aptosDisconnect();
-      }
-      setMartianConnected(false);
-      setMartianAccount(null);
-
-      const accounts = await window.ethereum.request({
-        method: 'eth_requestAccounts',
-      });
-
-      if (accounts.length > 0) {
-        setMetamaskAccount(accounts[0]);
-        setMetamaskConnected(true);
-        setWalletType('metamask');
-      }
-    } catch (error: any) {
-      console.error('MetaMask connection error:', error);
-      throw new Error('Failed to connect MetaMask');
-    } finally {
-      setMetamaskConnecting(false);
-    }
-  }, [aptosConnected, aptosDisconnect]);
 
   const disconnect = useCallback(async () => {
     try {
       if (walletType === 'aptos') {
         await aptosDisconnect();
-      } else if (walletType === 'metamask') {
-        setMetamaskAccount(null);
-        setMetamaskConnected(false);
       } else if (walletType === 'martian') {
         if (window.martian && window.martian.disconnect) {
           await window.martian.disconnect();
@@ -226,22 +153,36 @@ export const useWallet = () => {
       }
     } else if (walletType === 'martian' && window.martian && martianAccount) {
       try {
-        const response = await window.martian.signAndSubmitTransaction(transaction);
+        console.log('Martian transaction payload:', transaction);
+        
+        // For Martian wallet, we need to use a simpler format
+        // Some versions expect just the core transaction properties
+        const martianPayload = {
+          function: transaction.function,
+          type_arguments: transaction.type_arguments || [],
+          arguments: transaction.arguments || [],
+        };
+        
+        console.log('Formatted Martian payload:', martianPayload);
+        
+        // Use the connect method to get account first, then submit transaction
+        const account = await window.martian.account();
+        console.log('Martian account:', account);
+        
+        // Try submitting with the formatted payload
+        const response = await window.martian.signAndSubmitTransaction(martianPayload);
+        console.log('Martian transaction response:', response);
         return response;
+        
       } catch (error: any) {
         console.error('Martian transaction error:', error);
-        throw new Error('Transaction failed');
-      }
-    } else if (walletType === 'metamask' && window.ethereum) {
-      try {
-        const txHash = await window.ethereum.request({
-          method: 'eth_sendTransaction',
-          params: [transaction],
-        });
-        return { hash: txHash };
-      } catch (error: any) {
-        console.error('MetaMask transaction error:', error);
-        throw new Error('Transaction failed');
+        
+        // If it's the serializedTxnRequest.split error, provide specific guidance
+        if (error.toString().includes('split')) {
+          throw new Error('Martian wallet compatibility issue. Please try: 1) Update Martian wallet, 2) Refresh the page, or 3) Use Petra wallet instead.');
+        }
+        
+        throw new Error(`Transaction failed: ${error.message || error.toString()}`);
       }
     } else {
       throw new Error('No wallet connected');
@@ -250,26 +191,17 @@ export const useWallet = () => {
 
   const isOnAptosTestnet = (walletType === 'aptos' && (network?.name === Network.TESTNET || network?.name === 'testnet')) || 
                          (walletType === 'martian');
-  const isOnEthereumNetwork = walletType === 'metamask';
 
   const switchToAptosTestnet = useCallback(async () => {
-    if (walletType === 'metamask') {
-      // Switch to Aptos instead
-      await connectAptos();
-    } else {
-      console.log('Network switch requested - Aptos wallet will handle this');
-    }
-  }, [walletType, connectAptos]);
+    console.log('Network switch requested - Aptos wallet will handle this');
+  }, []);
 
   // Determine current connection state
   const isConnected = (walletType === 'aptos' && aptosConnected) || 
-                     (walletType === 'metamask' && metamaskConnected) || 
                      (walletType === 'martian' && martianConnected);
   const isConnecting = (walletType === 'aptos' && aptosConnecting) || 
-                      (walletType === 'metamask' && metamaskConnecting) || 
                       (walletType === 'martian' && martianConnecting);
   const account = walletType === 'aptos' ? aptosAccount?.address : 
-                 walletType === 'metamask' ? metamaskAccount : 
                  walletType === 'martian' ? martianAccount : null;
 
   return {
@@ -279,17 +211,16 @@ export const useWallet = () => {
     publicKey: aptosAccount?.publicKey || null,
     walletType,
     connectAptos,
-    connectMetaMask,
     connectMartian,
     disconnect,
     signAndSubmitTransaction,
     client,
     network: network?.name || 'unknown',
-    isOnAptosTestnet: isOnAptosTestnet || isOnEthereumNetwork, // Show as valid for both
+    isOnAptosTestnet,
     switchToAptosTestnet,
     // Legacy compatibility
     connect: connectAptos,
-    isOnSeiTestnet: isOnAptosTestnet || isOnEthereumNetwork,
+    isOnSeiTestnet: isOnAptosTestnet,
     switchToSeiTestnet: switchToAptosTestnet,
   };
 };

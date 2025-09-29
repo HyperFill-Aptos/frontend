@@ -1,5 +1,6 @@
 export const CONTRACTS = {
     VAULT_ADDRESS: "0x96d2b185a5b581f98dc1df57b59a5875eb53b3a65ef7a9b0d5e42aa44c3b8b82",
+    MOCK_TOKEN_ADDRESS: "0x96d2b185a5b581f98dc1df57b59a5875eb53b3a65ef7a9b0d5e42aa44c3b8b82::mock_token::MockToken",
     APT_ADDRESS: "0x1::aptos_coin::AptosCoin",
     SETTLEMENT_ADDRESS: "0x96d2b185a5b581f98dc1df57b59a5875eb53b3a65ef7a9b0d5e42aa44c3b8b82",
     ORDERBOOK_ADDRESS: "0x96d2b185a5b581f98dc1df57b59a5875eb53b3a65ef7a9b0d5e42aa44c3b8b82",
@@ -26,18 +27,13 @@ export const CONTRACTS = {
     DEPOSIT_LIQUIDITY: "deposit_liquidity",
     WITHDRAW_PROFITS: "withdraw_profits",
     GET_USER_SHARE_BALANCE: "get_user_share_balance",
-    GET_BALANCE_USER: "get_balance_user",
-    BALANCE_OF: "balance_of",
-    TOTAL_SUPPLY: "total_supply",
-    TOTAL_ASSETS: "total_assets",
+    GET_VAULT_STATE: "get_vault_state",
     GET_SHARE_PRICE: "get_share_price",
     GET_AVAILABLE_ASSETS: "get_available_assets",
-    MIN_DEPOSIT: "min_deposit",
-    PAUSED: "paused",
-    ASSET: "asset",
-    PREVIEW_DEPOSIT: "preview_deposit",
-    PREVIEW_REDEEM: "preview_redeem",
-    GET_VAULT_STATE: "get_vault_state",
+    GET_MIN_DEPOSIT: "get_min_deposit",
+    IS_PAUSED: "is_paused",
+    GET_USER_PROFITS: "get_user_profits",
+    GET_USER_TOTAL_DEPOSITED: "get_user_total_deposited",
     MOVE_FROM_VAULT_TO_WALLET: "move_from_vault_to_wallet",
     MOVE_FROM_WALLET_TO_VAULT: "move_from_wallet_to_vault",
   } as const;
@@ -64,6 +60,18 @@ export const CONTRACTS = {
     DECIMALS: "decimals",
     SYMBOL: "symbol",
     NAME: "name",
+  } as const;
+
+  export const MOCK_TOKEN_FUNCTIONS = {
+    GET_BALANCE: "get_balance",
+    TRANSFER: "transfer",
+    DECIMALS: "decimals",
+    SYMBOL: "symbol",
+    NAME: "name",
+    TOTAL_SUPPLY: "total_supply",
+    IS_REGISTERED: "is_registered",
+    REGISTER: "register",
+    FAUCET: "faucet",
   } as const;
 
   export const COIN_FUNCTIONS = {
