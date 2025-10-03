@@ -22,7 +22,6 @@ export const useWallet = () => {
     disconnect: aptosDisconnect,
     account: aptosAccount,
     connected: aptosConnected,
-    connecting: aptosConnecting,
     wallet: currentWallet,
     network,
   } = useAptosWallet();
@@ -143,51 +142,119 @@ export const useWallet = () => {
   }, [walletType, aptosDisconnect]);
 
   const signAndSubmitTransaction = useCallback(async (transaction: any) => {
-    if (walletType === 'aptos' && currentWallet && aptosAccount) {
+    console.log('=== TRANSACTION DEBUG ===');
+    console.log('Wallet type:', walletType);
+    console.log('Current wallet:', currentWallet?.name);
+    console.log('Transaction payload:', transaction);
+    console.log('Martian available:', !!window.martian);
+    console.log('Martian account:', martianAccount);
+    console.log('========================');
+
+    if (currentWallet && aptosAccount && walletType === 'aptos') {
       try {
-        const response = await currentWallet.signAndSubmitTransaction(transaction);
-        return response;
+        // Use the correct method for Aptos wallet (Petra/WalletInfo)
+        if (typeof (currentWallet as any).signAndSubmitTransaction === 'function') {
+          const response = await (currentWallet as any).signAndSubmitTransaction(transaction);
+          console.log('Aptos wallet response:', response);
+          return response;
+        } else if ((window as any).aptos && typeof (window as any).aptos.signAndSubmitTransaction === 'function') {
+          // Fallback to window.aptos if available
+          const response = await (window as any).aptos.signAndSubmitTransaction(transaction);
+          console.log('Aptos wallet response (window.aptos):', response);
+          return response;
+        } else {
+          throw new Error('No signAndSubmitTransaction method found for Aptos wallet');
+        }
       } catch (error: any) {
-        console.error('Aptos transaction error:', error);
-        throw new Error('Transaction failed');
+        console.error('Aptos wallet error:', error);
+        throw new Error(`Transaction failed: ${error.message || error.toString()}`);
       }
-    } else if (walletType === 'martian' && window.martian && martianAccount) {
+    } else if (window.martian && martianAccount) {
       try {
-        console.log('Martian transaction payload:', transaction);
+        console.log('Using correct Martian wallet integration');
+        console.log('Transaction function:', transaction.function);
+        console.log('Full transaction object:', transaction);
         
-        // For Martian wallet, we need to use a simpler format
-        // Some versions expect just the core transaction properties
-        const martianPayload = {
+        // Create the payload in the exact format from Martian docs
+        const payload = {
           function: transaction.function,
           type_arguments: transaction.type_arguments || [],
           arguments: transaction.arguments || [],
         };
         
-        console.log('Formatted Martian payload:', martianPayload);
+        console.log('=== PAYLOAD DEBUG ===');
+        console.log('Function:', transaction.function);
+        console.log('Type arguments:', transaction.type_arguments);
+        console.log('Arguments:', transaction.arguments);
+        console.log('Final payload:', payload);
+        console.log('Sender account:', martianAccount);
+        console.log('=====================');
         
-        // Use the connect method to get account first, then submit transaction
-        const account = await window.martian.account();
-        console.log('Martian account:', account);
+        // Try both approaches - first the combined method, then fallback to two-step
+        let txnHash;
         
-        // Try submitting with the formatted payload
-        const response = await window.martian.signAndSubmitTransaction(martianPayload);
-        console.log('Martian transaction response:', response);
-        return response;
+        try {
+          // Method 1: Combined generateSignAndSubmitTransaction
+          const options = {
+            max_gas_amount: "100000",
+            gas_unit_price: "100",
+          };
+          
+          console.log('Trying generateSignAndSubmitTransaction...');
+          console.log('Parameters:', { sender: martianAccount, payload, options });
+          
+          txnHash = await window.martian.generateSignAndSubmitTransaction(martianAccount, payload, options);
+          console.log('Combined method success:', txnHash);
+          
+        } catch (combinedError) {
+          console.log('Combined method failed, trying two-step approach:', combinedError);
+          
+          // Method 2: Two-step process
+          console.log('Trying generateTransaction + signAndSubmitTransaction...');
+          const generatedTxn = await window.martian.generateTransaction(martianAccount, payload);
+          console.log('Generated transaction:', generatedTxn);
+          
+          txnHash = await window.martian.signAndSubmitTransaction(generatedTxn);
+          console.log('Two-step method success:', txnHash);
+        }
+        
+        // Return in the expected format
+        return {
+          hash: txnHash,
+          transactionHash: txnHash
+        };
         
       } catch (error: any) {
         console.error('Martian transaction error:', error);
+        console.error('Error type:', typeof error);
+        console.error('Error details:', error.message, error.toString());
+        console.error('Full error object:', error);
         
-        // If it's the serializedTxnRequest.split error, provide specific guidance
-        if (error.toString().includes('split')) {
-          throw new Error('Martian wallet compatibility issue. Please try: 1) Update Martian wallet, 2) Refresh the page, or 3) Use Petra wallet instead.');
+        // Network error specifically
+        if (error.message && error.message.includes('Network Error')) {
+          throw new Error('Network Error: Contract may not be deployed on this network, or RPC endpoint is unreachable.');
         }
         
-        throw new Error(`Transaction failed: ${error.message || error.toString()}`);
+        // Check for common errors
+        if (error.message && error.message.includes('insufficient')) {
+          throw new Error('Insufficient token balance. Please get tokens from faucet first.');
+        }
+        
+        if (error.message && error.message.includes('not registered')) {
+          throw new Error('Token not registered. Please try the faucet first to register the token.');
+        }
+        
+        if (error.message && error.message.includes('not found')) {
+          throw new Error('Contract or function not found. Please check if contracts are deployed.');
+        }
+        
+        throw new Error(`Martian transaction failed: ${error.message || error.toString()}`);
       }
     } else {
+      console.error('No wallet connected or available');
       throw new Error('No wallet connected');
     }
-  }, [walletType, currentWallet, aptosAccount, martianAccount]);
+  }, [currentWallet, aptosAccount, walletType, martianAccount]);
 
   const isOnAptosTestnet = (walletType === 'aptos' && (network?.name === Network.TESTNET || network?.name === 'testnet')) || 
                          (walletType === 'martian');

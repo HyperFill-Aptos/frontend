@@ -247,7 +247,9 @@ export const useVault = () => {
     }
   }, [account, aptosClient]);
 
-  const approveAPT = useCallback(async (amount: string): Promise<boolean> => {
+  const approveAPT = useCallback(async (_amount: string): Promise<boolean> => {
+    // For Aptos, we don't need explicit approval like ERC20
+    // The transaction will handle token transfer directly
     return true;
   }, []);
 
@@ -267,19 +269,23 @@ export const useVault = () => {
         arguments: [amountInOctas.toString()],
       };
 
+      console.log('Faucet payload:', payload);
       const response = await signAndSubmitTransaction(payload);
+      console.log('Faucet response:', response);
 
-      if (!response || !response.hash) {
-        throw new Error('Transaction failed');
+      if (!response || (!response.hash && !response.transactionHash)) {
+        throw new Error('Transaction failed - no hash returned');
       }
 
-      await aptosClient.waitForTransaction(response.hash);
+      const txHash = response.hash || response.transactionHash;
+      await aptosClient.waitForTransaction(txHash);
 
-      await fetchStats();
+      // Refresh stats after successful transaction
+      setTimeout(() => fetchStats(), 2000);
 
       return {
         success: true,
-        txHash: response.hash,
+        txHash: txHash,
         shares: amount,
       };
     } catch (error: any) {
@@ -301,31 +307,81 @@ export const useVault = () => {
     try {
       setLoading(true);
 
+      // Check if user needs to register for the mock token first
+      try {
+        const isRegistered = await aptosClient.view({
+          payload: {
+            function: `${CONTRACTS.VAULT_ADDRESS}::mock_token::${MOCK_TOKEN_FUNCTIONS.IS_REGISTERED}`,
+            functionArguments: [account],
+            typeArguments: [],
+          }
+        });
+        
+        if (!isRegistered[0]) {
+          // Register for the token first
+          const registerPayload = {
+            function: `${CONTRACTS.VAULT_ADDRESS}::mock_token::${MOCK_TOKEN_FUNCTIONS.REGISTER}`,
+            type_arguments: [],
+            arguments: [],
+          };
+          
+          console.log('Registering for token first:', registerPayload);
+          const registerResponse = await signAndSubmitTransaction(registerPayload);
+          console.log('Registration response:', registerResponse);
+          
+          const registerHash = registerResponse.hash || registerResponse.transactionHash;
+          await aptosClient.waitForTransaction(registerHash);
+        }
+      } catch (regError) {
+        console.log('Token registration check failed, proceeding with deposit:', regError);
+      }
+
       const amountInOctas = Math.floor(parseFloat(amount) * 100000000);
 
+      // Fixed payload format for Martian wallet compatibility
       const payload = {
         function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.DEPOSIT_LIQUIDITY}`,
         type_arguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
-        arguments: [amountInOctas.toString()],
+        arguments: [CONTRACTS.VAULT_ADDRESS, amountInOctas.toString()],
       };
 
+      console.log('Deposit payload:', payload);
       const response = await signAndSubmitTransaction(payload);
+      console.log('Deposit response:', response);
 
-      if (!response || !response.hash) {
-        throw new Error('Transaction failed');
+      if (!response || (!response.hash && !response.transactionHash)) {
+        throw new Error('Transaction failed - no hash returned');
       }
 
-      await aptosClient.waitForTransaction(response.hash);
+      const txHash = response.hash || response.transactionHash;
+      await aptosClient.waitForTransaction(txHash);
 
-      await fetchStats();
+      // Refresh stats after successful transaction
+      setTimeout(() => fetchStats(), 2000);
 
       return {
         success: true,
-        txHash: response.hash,
+        txHash: txHash,
         shares: amount,
       };
     } catch (error: any) {
       console.error('Error depositing:', error);
+      
+      // Check for common Aptos errors
+      if (error.message && error.message.includes('INSUFFICIENT_BALANCE')) {
+        return {
+          success: false,
+          error: 'Insufficient token balance. Please get tokens from faucet first.'
+        };
+      }
+      
+      if (error.message && error.message.includes('not registered')) {
+        return {
+          success: false,
+          error: 'Token not registered. Please try again - registration will happen automatically.'
+        };
+      }
+      
       return {
         success: false,
         error: error.message || 'Transaction failed'
@@ -346,22 +402,26 @@ export const useVault = () => {
       const payload = {
         function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.WITHDRAW_PROFITS}`,
         type_arguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
-        arguments: [],
+        arguments: [CONTRACTS.VAULT_ADDRESS],
       };
 
+      console.log('Withdraw payload:', payload);
       const response = await signAndSubmitTransaction(payload);
+      console.log('Withdraw response:', response);
 
-      if (!response || !response.hash) {
-        throw new Error('Transaction failed');
+      if (!response || (!response.hash && !response.transactionHash)) {
+        throw new Error('Transaction failed - no hash returned');
       }
 
-      await aptosClient.waitForTransaction(response.hash);
+      const txHash = response.hash || response.transactionHash;
+      await aptosClient.waitForTransaction(txHash);
 
-      await fetchStats();
+      // Refresh stats after successful transaction
+      setTimeout(() => fetchStats(), 2000);
 
       return {
         success: true,
-        txHash: response.hash,
+        txHash: txHash,
         assets: stats?.userShares || '0',
       };
     } catch (error: any) {
