@@ -22,7 +22,10 @@ export const useWallet = () => {
     disconnect: aptosDisconnect,
     account: aptosAccount,
     connected: aptosConnected,
+    connecting: aptosConnecting,
     wallet: currentWallet,
+    wallets,
+    signAndSubmitTransaction: adapterSignAndSubmitTransaction,
     network,
   } = useAptosWallet();
 
@@ -49,7 +52,7 @@ export const useWallet = () => {
             setWalletType('martian');
           }
         } catch (error) {
-          console.log('Martian wallet not connected:', error);
+          console.debug('Martian wallet not connected:', error);
         }
 
         // Listen for account changes
@@ -88,12 +91,20 @@ export const useWallet = () => {
     try {
       setMartianConnected(false);
       setMartianAccount(null);
-      await aptosConnect();
+      // Prefer Petra explicitly when no selector UI is present
+      const petra = wallets?.find((w: any) =>
+        typeof w?.name === 'string' && w.name.toLowerCase().includes('petra')
+      );
+      if (petra?.name) {
+        await aptosConnect(petra.name as any);
+      } else {
+        await aptosConnect();
+      }
     } catch (error: any) {
       console.error('Aptos wallet connection error:', error);
       throw new Error('Failed to connect Aptos wallet');
     }
-  }, [aptosConnect]);
+  }, [aptosConnect, wallets]);
 
   const connectMartian = useCallback(async () => {
     if (!window.martian) {
@@ -152,14 +163,36 @@ export const useWallet = () => {
 
     if (currentWallet && aptosAccount && walletType === 'aptos') {
       try {
-        // Use the correct method for Aptos wallet (Petra/WalletInfo)
-        if (typeof (currentWallet as any).signAndSubmitTransaction === 'function') {
-          const response = await (currentWallet as any).signAndSubmitTransaction(transaction);
+        // Normalize sender address to string
+        const sender = (aptosAccount as any)?.address?.toString
+          ? (aptosAccount as any).address.toString()
+          : (aptosAccount as any)?.address;
+
+        // Map raw payload to adapter InputTransactionData shape
+        const input = transaction?.function
+          ? {
+              sender,
+              data: {
+                type: 'entry_function_payload',
+                function: transaction.function,
+                typeArguments: transaction.type_arguments || transaction.typeArguments || [],
+                functionArguments: transaction.arguments || transaction.functionArguments || [],
+              },
+            }
+          : transaction;
+
+        // Prefer adapter hook API for consistent payload mapping
+        if (typeof adapterSignAndSubmitTransaction === 'function') {
+          const response = await adapterSignAndSubmitTransaction(input as any);
           console.log('Aptos wallet response:', response);
+          return response;
+        } else if (typeof (currentWallet as any).signAndSubmitTransaction === 'function') {
+          const response = await (currentWallet as any).signAndSubmitTransaction(input);
+          console.log('Aptos wallet response (wallet instance):', response);
           return response;
         } else if ((window as any).aptos && typeof (window as any).aptos.signAndSubmitTransaction === 'function') {
           // Fallback to window.aptos if available
-          const response = await (window as any).aptos.signAndSubmitTransaction(transaction);
+          const response = await (window as any).aptos.signAndSubmitTransaction(input);
           console.log('Aptos wallet response (window.aptos):', response);
           return response;
         } else {
@@ -177,6 +210,7 @@ export const useWallet = () => {
         
         // Create the payload in the exact format from Martian docs
         const payload = {
+          type: "entry_function_payload",
           function: transaction.function,
           type_arguments: transaction.type_arguments || [],
           arguments: transaction.arguments || [],
@@ -201,9 +235,10 @@ export const useWallet = () => {
           };
           
           console.log('Trying generateSignAndSubmitTransaction...');
-          console.log('Parameters:', { sender: martianAccount, payload, options });
+          console.log('Parameters:', { payload, options });
           
-          txnHash = await window.martian.generateSignAndSubmitTransaction(martianAccount, payload, options);
+          // Martian's generateSignAndSubmitTransaction expects (payload, options)
+          txnHash = await window.martian.generateSignAndSubmitTransaction(payload, options);
           console.log('Combined method success:', txnHash);
           
         } catch (combinedError) {
@@ -211,7 +246,8 @@ export const useWallet = () => {
           
           // Method 2: Two-step process
           console.log('Trying generateTransaction + signAndSubmitTransaction...');
-          const generatedTxn = await window.martian.generateTransaction(martianAccount, payload);
+          // Martian's generateTransaction expects (payload)
+          const generatedTxn = await window.martian.generateTransaction(payload);
           console.log('Generated transaction:', generatedTxn);
           
           txnHash = await window.martian.signAndSubmitTransaction(generatedTxn);
@@ -266,9 +302,13 @@ export const useWallet = () => {
   // Determine current connection state
   const isConnected = (walletType === 'aptos' && aptosConnected) || 
                      (walletType === 'martian' && martianConnected);
-  const isConnecting = (walletType === 'aptos' && aptosConnecting) || 
+  const isConnecting = (walletType === 'aptos' && !!aptosConnecting) || 
                       (walletType === 'martian' && martianConnecting);
-  const account = walletType === 'aptos' ? aptosAccount?.address : 
+  const account = walletType === 'aptos'
+    ? ((aptosAccount as any)?.address?.toString
+        ? (aptosAccount as any).address.toString()
+        : (aptosAccount as any)?.address)
+    : 
                  walletType === 'martian' ? martianAccount : null;
 
   return {

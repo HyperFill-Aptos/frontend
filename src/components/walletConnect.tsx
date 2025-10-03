@@ -9,24 +9,32 @@ export const WalletConnect = () => {
     isConnected,
     isConnecting,
     walletType,
-    connectMartian,
+    connectAptos,
     disconnect
   } = useWallet();
 
-  const formatAddress = (address: string) => {
+  const formatAddress = (value: unknown) => {
+    const address = typeof value === 'string'
+      ? value
+      : (value && typeof (value as any).address === 'string')
+        ? (value as any).address
+        : '';
+    if (!address) return 'Unknown';
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
   const handleWalletSelect = async () => {
     try {
-      await connectMartian();
+      await connectAptos();
     } catch (error) {
       console.error('Wallet connection failed:', error);
     }
   };
 
   if (isConnected && account) {
-    const accountAddress = typeof account === 'string' ? account : account;
+    const accountAddress = typeof account === 'string'
+      ? account
+      : (account as any)?.address ?? '';
 
     return (
       <div className="flex items-center gap-2">
@@ -34,7 +42,7 @@ export const WalletConnect = () => {
           variant="default"
           className="px-3 py-1"
         >
-          Martian
+          Petra
         </Badge>
 
         <Badge variant="outline" className="px-3 py-1">
@@ -61,7 +69,7 @@ export const WalletConnect = () => {
       className="flex items-center gap-2"
     >
       <Wallet className="h-4 w-4" />
-      {isConnecting ? "Connecting..." : "Connect Martian Wallet"}
+      {isConnecting ? "Connecting..." : "Connect Petra Wallet"}
     </Button>
   );
 };

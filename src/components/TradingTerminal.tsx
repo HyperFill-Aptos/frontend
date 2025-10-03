@@ -23,8 +23,8 @@ import { useTrading } from '@/hooks/useTrading';
 import { ApprovalModal } from './ApprovalModal';
 import { CONTRACTS } from '@/lib/contracts';
 
-// API Configuration
-const API_BASE_URL = import.meta.env?.VITE_ORDERBOOK_API_URL || 'http://localhost:8001';
+// API Configuration - use dev proxy for /api in development
+const API_BASE_URL = '/api';
 const AGENT_API_URL = import.meta.env?.VITE_AGENT_API_URL || 'http://localhost:8000';
 
 // API Functions
@@ -41,14 +41,14 @@ const api = {
   },
 
   async getOrderbook(symbol) {
-    const formData = new FormData();
-    formData.append('payload', JSON.stringify({ symbol }));
-
-    const response = await fetch(`${API_BASE_URL}/api/orderbook`, {
-      method: 'POST',
-      body: formData,
-    });
-    return await response.json();
+    // Prefer GET /api/orderbook/:symbol via dev proxy
+    const res = await fetch(`${API_BASE_URL}/orderbook/${encodeURIComponent(symbol)}`);
+    const data = await res.json();
+    // Normalize possible shapes
+    if (data && (data.bids || data.asks)) {
+      return { status_code: 1, orderbook: data };
+    }
+    return data;
   },
 
   async getOrder(orderId) {
