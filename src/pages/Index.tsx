@@ -1,6 +1,7 @@
 import { TradingTerminal } from "../components/TradingTerminal";
 import { WalletConnect } from "../components/walletConnect";
 import { VaultDashboard } from "../components/VaultDashboard";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
@@ -25,7 +26,9 @@ const Index = () => {
           </TabsContent>
           
           <TabsContent value="trading" className="space-y-4">
-            <TradingTerminal />
+            <ErrorBoundary>
+              <TradingTerminal />
+            </ErrorBoundary>
           </TabsContent>
         </Tabs>
       </main>

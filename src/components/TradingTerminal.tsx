@@ -23,8 +23,10 @@ import { useTrading } from '@/hooks/useTrading';
 import { ApprovalModal } from './ApprovalModal';
 import { CONTRACTS } from '@/lib/contracts';
 
-// API Configuration - use dev proxy for /api in development
-const API_BASE_URL = '/api';
+// API Configuration - handle both development and production
+const API_BASE_URL = import.meta.env.DEV 
+  ? '/api' 
+  : 'https://hypermover-market-making-api-21220e7caf7e.herokuapp.com/api';
 const AGENT_API_URL = import.meta.env?.VITE_AGENT_API_URL || 'http://localhost:8000';
 
 // API Functions
@@ -33,7 +35,7 @@ const api = {
     const formData = new FormData();
     formData.append('payload', JSON.stringify(orderData));
 
-    const response = await fetch(`${API_BASE_URL}/api/register_order`, {
+    const response = await fetch(`${API_BASE_URL}/register_order`, {
       method: 'POST',
       body: formData,
     });
@@ -41,21 +43,33 @@ const api = {
   },
 
   async getOrderbook(symbol) {
-    // Prefer GET /api/orderbook/:symbol via dev proxy
-    const res = await fetch(`${API_BASE_URL}/orderbook/${encodeURIComponent(symbol)}`);
-    const data = await res.json();
-    // Normalize possible shapes
-    if (data && (data.bids || data.asks)) {
-      return { status_code: 1, orderbook: data };
+    try {
+      const res = await fetch(`${API_BASE_URL}/orderbook/${encodeURIComponent(symbol)}`);
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+      const data = await res.json();
+      // Normalize possible shapes
+      if (data && (data.bids || data.asks)) {
+        return { status_code: 1, orderbook: data };
+      }
+      return data;
+    } catch (error) {
+      console.error('Failed to fetch orderbook:', error);
+      // Return empty orderbook to prevent component crashes
+      return { 
+        status_code: 0, 
+        orderbook: { bids: [], asks: [] },
+        error: error.message 
+      };
     }
-    return data;
   },
 
   async getOrder(orderId) {
     const formData = new FormData();
     formData.append('payload', JSON.stringify({ orderId }));
 
-    const response = await fetch(`${API_BASE_URL}/api/order`, {
+    const response = await fetch(`${API_BASE_URL}/order`, {
       method: 'POST',
       body: formData,
     });
@@ -66,7 +80,7 @@ const api = {
     const formData = new FormData();
     formData.append('payload', JSON.stringify({ baseAsset, quoteAsset, side }));
 
-    const response = await fetch(`${API_BASE_URL}/api/get_best_order`, {
+    const response = await fetch(`${API_BASE_URL}/get_best_order`, {
       method: 'POST',
       body: formData,
     });
@@ -77,7 +91,7 @@ const api = {
     const formData = new FormData();
     formData.append('payload', JSON.stringify({ orderId, side, baseAsset, quoteAsset }));
 
-    const response = await fetch(`${API_BASE_URL}/api/cancel_order`, {
+    const response = await fetch(`${API_BASE_URL}/cancel_order`, {
       method: 'POST',
       body: formData,
     });
@@ -88,7 +102,7 @@ const api = {
     const formData = new FormData();
     formData.append('payload', JSON.stringify({ account, asset }));
 
-    const response = await fetch(`${API_BASE_URL}/api/check_available_funds`, {
+    const response = await fetch(`${API_BASE_URL}/check_available_funds`, {
       method: 'POST',
       body: formData,
     });
@@ -118,7 +132,7 @@ const api = {
   },
 
   async checkSettlementHealth() {
-    const response = await fetch(`${API_BASE_URL}/api/settlement_health`);
+    const response = await fetch(`${API_BASE_URL}/settlement_health`);
     return await response.json();
   }
 };
@@ -539,19 +553,27 @@ const MarketStats = ({ symbol, orderbook }) => {
 
 // Main Trading Terminal Component
 export function TradingTerminal() {
-  const {
-    account,
-    isConnected,
-    isConnecting,
-    connect,
-    disconnect,
-    isOnAptosTestnet,
-    switchToAptosTestnet
-  } = useWallet();
+  console.log('🚀 TradingTerminal component starting to render...');
+  
+  try {
+    console.log('📱 Calling useWallet hook...');
+    const {
+      account,
+      isConnected,
+      isConnecting,
+      connect,
+      disconnect,
+      isOnAptosTestnet,
+      switchToAptosTestnet
+    } = useWallet();
+    console.log('✅ useWallet hook successful:', { account, isConnected });
 
-  const { checkOrderApprovals } = useTrading();
+    console.log('🛠️ Calling useTrading hook...');
+    const { checkOrderApprovals } = useTrading();
+    console.log('✅ useTrading hook successful');
 
-  const [orderbook, setOrderbook] = useState(null);
+    console.log('🔄 Initializing state...');
+    const [orderbook, setOrderbook] = useState(null);
   const [loading, setLoading] = useState(false);
   const [agentRunning, setAgentRunning] = useState(false);
   const [agentLoading, setAgentLoading] = useState(false);
@@ -698,6 +720,7 @@ export function TradingTerminal() {
     setAgentLoading(false);
   };
   const formatAddress = (address) => {
+    if (!address) return 'N/A';
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
@@ -712,10 +735,12 @@ export function TradingTerminal() {
 
   // Add connection logs
   useEffect(() => {
-    if (isConnected) {
+    if (isConnected && account) {
       addLog(`Wallet connected: ${formatAddress(account)}`, 'success');
     }
   }, [isConnected, account]);
+
+  console.log('🎨 About to render TradingTerminal UI...');
 
   return (
     <div className="min-h-screen bg-black text-aptos-blue-light p-4 font-sans max-w-7xl mx-auto">
@@ -750,7 +775,7 @@ export function TradingTerminal() {
 
           <div className="flex items-center space-x-2">
             <span className="text-sm font-medium text-aptos-blue-light">
-              {isConnected ? `Connected: ${formatAddress(account)}` : "Wallet Disconnected"}
+              {isConnected && account ? `Connected: ${formatAddress(account)}` : "Wallet Disconnected"}
             </span>
           </div>
 
@@ -919,4 +944,20 @@ export function TradingTerminal() {
       />
     </div>
   );
+  
+  } catch (error) {
+    console.error('💥 TradingTerminal component error:', error);
+    return (
+      <div className="min-h-screen bg-black text-red-400 p-4 font-mono">
+        <div className="border border-red-500 bg-red-900/20 p-4 rounded">
+          <h2 className="text-lg font-bold mb-2">TradingTerminal Error</h2>
+          <p className="mb-2">Failed to render trading terminal component.</p>
+          <details>
+            <summary className="cursor-pointer">Error Details</summary>
+            <pre className="text-xs mt-2 whitespace-pre-wrap">{error.toString()}</pre>
+          </details>
+        </div>
+      </div>
+    );
+  }
 }
