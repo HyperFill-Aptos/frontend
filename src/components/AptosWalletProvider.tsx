@@ -9,7 +9,7 @@ interface AptosWalletProviderProps {
 export function AptosWalletProvider({ children }: AptosWalletProviderProps) {
   return (
     <AptosWalletAdapterProvider
-      plugins={[]}
+      // plugins={[]}
       autoConnect={false}
       dappConfig={{
         network: Network.TESTNET,
