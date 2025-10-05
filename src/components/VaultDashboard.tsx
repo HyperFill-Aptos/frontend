@@ -41,7 +41,7 @@ export const VaultDashboard = () => {
     if (stats && parseFloat(depositAmount) > parseFloat(stats.mockTokenBalance)) {
       toast({
         title: "Insufficient balance",
-        description: "You don't have enough mock tokens",
+        description: "You don't have enough tokens",
         variant: "destructive",
       });
       return;

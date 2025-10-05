@@ -50,16 +50,13 @@ export const useVault = () => {
 
     setRefreshing(true);
     try {
-      console.log('Fetching vault stats for account:', account);
-      console.log('Using vault address:', CONTRACTS.VAULT_ADDRESS);
-      console.log('Using mock token address:', CONTRACTS.MOCK_TOKEN_ADDRESS);
+
       
       // First, let's check what modules are deployed at this address
       try {
         const accountModules = await aptosClient.getAccountModules({
           accountAddress: CONTRACTS.VAULT_ADDRESS,
         });
-        console.log('Modules deployed at vault address:', accountModules.map(m => m.abi?.name));
         
         if (accountModules.length === 0) {
           console.error('No modules found at this address. Contracts may not be deployed.');
@@ -86,10 +83,9 @@ export const useVault = () => {
           payload: {
             function: `${CONTRACTS.VAULT_ADDRESS}::vault::get_owner`,
             functionArguments: [CONTRACTS.VAULT_ADDRESS],
-            typeArguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+            typeArguments: [`${CONTRACTS.APT_ADDRESS}`],
           }
         });
-        console.log('Contract owner test result:', testResult);
       } catch (testError) {
         console.error('Contract access error:', testError);
         // Continue with mock data for testing
@@ -127,7 +123,7 @@ export const useVault = () => {
           payload: {
             function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.GET_VAULT_STATE}`,
             functionArguments: [account],
-            typeArguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+            typeArguments: [`${CONTRACTS.APT_ADDRESS}`],
           }
         }),
         // Get user's share balance
@@ -135,7 +131,7 @@ export const useVault = () => {
           payload: {
             function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.GET_USER_SHARE_BALANCE}`,
             functionArguments: [account, account],
-            typeArguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+            typeArguments: [`${CONTRACTS.APT_ADDRESS}`],
           }
         }),
         // Get available assets for trading
@@ -143,7 +139,7 @@ export const useVault = () => {
           payload: {
             function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.GET_AVAILABLE_ASSETS}`,
             functionArguments: [account],
-            typeArguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+            typeArguments: [`${CONTRACTS.APT_ADDRESS}`],
           }
         }),
         // Get minimum deposit requirement
@@ -151,7 +147,7 @@ export const useVault = () => {
           payload: {
             function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.GET_MIN_DEPOSIT}`,
             functionArguments: [account],
-            typeArguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+            typeArguments: [`${CONTRACTS.APT_ADDRESS}`],
           }
         }),
         // Check if vault is paused
@@ -159,7 +155,7 @@ export const useVault = () => {
           payload: {
             function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.IS_PAUSED}`,
             functionArguments: [account],
-            typeArguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+            typeArguments: [`${CONTRACTS.APT_ADDRESS}`],
           }
         }),
         // Get user's profits
@@ -167,7 +163,7 @@ export const useVault = () => {
           payload: {
             function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.GET_USER_PROFITS}`,
             functionArguments: [account, account],
-            typeArguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+            typeArguments: [`${CONTRACTS.APT_ADDRESS}`],
           }
         }),
         // Get user's total deposited amount
@@ -181,7 +177,7 @@ export const useVault = () => {
         // Get user's mock token balance
         aptosClient.view({
           payload: {
-            function: `${CONTRACTS.VAULT_ADDRESS}::mock_token::${MOCK_TOKEN_FUNCTIONS.GET_BALANCE}`,
+            function: `${CONTRACTS.VAULT_ADDRESS}::APTToken::${MOCK_TOKEN_FUNCTIONS.GET_BALANCE}`,
             functionArguments: [account],
             typeArguments: [],
           }
@@ -201,11 +197,7 @@ export const useVault = () => {
         })(),
       ]);
       
-      console.log('Results:', {
-        vaultStateResult: vaultStateResult.status === 'fulfilled' ? vaultStateResult.value : vaultStateResult.reason,
-        userSharesResult: userSharesResult.status === 'fulfilled' ? userSharesResult.value : userSharesResult.reason,
-        mockTokenBalanceResult: mockTokenBalanceResult.status === 'fulfilled' ? mockTokenBalanceResult.value : mockTokenBalanceResult.reason,
-      });
+      
 
       const formatToken = (value: any) => {
         const numValue = typeof value === 'string' ? parseInt(value) : value;
@@ -269,18 +261,16 @@ export const useVault = () => {
     try {
       setLoading(true);
 
-      const decimals = 8; // MockToken uses 8 decimals
+      const decimals = 8; // APTToken uses 8 decimals
       const amountInOctas = BigInt(Math.floor(parseFloat(amount) * 10 ** decimals)).toString();
 
       const payload = {
-        function: `${CONTRACTS.VAULT_ADDRESS}::mock_token::${MOCK_TOKEN_FUNCTIONS.FAUCET}`,
+        function: `${CONTRACTS.VAULT_ADDRESS}::APTToken::${MOCK_TOKEN_FUNCTIONS.FAUCET}`,
         type_arguments: [],
         arguments: [amountInOctas],
       };
 
-      console.log('Faucet payload:', payload);
       const response = await signAndSubmitTransaction(payload);
-      console.log('Faucet response:', response);
 
       const txHash = (response as any)?.hash || (response as any)?.transactionHash || (typeof response === 'string' ? response : undefined);
       if (!txHash) {
@@ -320,15 +310,14 @@ export const useVault = () => {
       // Ensure user's vault resource exists; if not, initialize it
       try {
         const resources: any[] = await aptosClient.getAccountResources({ accountAddress: account });
-        const vaultType = `${CONTRACTS.VAULT_ADDRESS}::vault::HyperMoveVault<${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken>`;
+        const vaultType = `${CONTRACTS.VAULT_ADDRESS}::vault::HyperMoveVault<${CONTRACTS.APT_ADDRESS}>`;
         const hasVault = resources.some((r: any) => r.type === vaultType);
         if (!hasVault) {
           const initPayload = {
             function: `${CONTRACTS.VAULT_ADDRESS}::vault::initialize`,
-            type_arguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+            type_arguments: [`${CONTRACTS.APT_ADDRESS}`],
             arguments: ["0"], // use contract default min_deposit
           };
-          console.log('Initializing user vault:', initPayload);
           const initResp = await signAndSubmitTransaction(initPayload);
           const initHash = (initResp as any)?.hash || (initResp as any)?.transactionHash;
           if (initHash) {
@@ -342,11 +331,10 @@ export const useVault = () => {
       // Ensure sender is registered for MockToken before deposit (best-effort)
       try {
         const registerPayload = {
-          function: `${CONTRACTS.VAULT_ADDRESS}::mock_token::${MOCK_TOKEN_FUNCTIONS.REGISTER}`,
+          function: `${CONTRACTS.VAULT_ADDRESS}::APTToken::${MOCK_TOKEN_FUNCTIONS.REGISTER}`,
           type_arguments: [],
           arguments: [],
         };
-        console.log('Ensuring token registration:', registerPayload);
         const registerResponse = await signAndSubmitTransaction(registerPayload);
         const registerHash = (registerResponse as any)?.hash || (registerResponse as any)?.transactionHash;
         if (registerHash) {
@@ -366,19 +354,27 @@ export const useVault = () => {
             payload: {
               function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.GET_MIN_DEPOSIT}`,
               functionArguments: [account],
-              typeArguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+              typeArguments: [`${CONTRACTS.VAULT_ADDRESS}::APTToken::AptToken`],
             }
           }).catch(() => [0]),
           aptosClient.view({
             payload: {
               function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.IS_PAUSED}`,
               functionArguments: [account],
-              typeArguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+              typeArguments: [`${CONTRACTS.VAULT_ADDRESS}::APTToken::AptToken`],
             }
           }).catch(() => [false]),
           aptosClient.view({
             payload: {
-              function: `${CONTRACTS.VAULT_ADDRESS}::mock_token::${MOCK_TOKEN_FUNCTIONS.GET_BALANCE}`,
+              function: `${CONTRACTS.VAULT_ADDRESS}::APTToken::${MOCK_TOKEN_FUNCTIONS.GET_BALANCE}`,
+              functionArguments: [account],
+              typeArguments: [],
+            }
+          }).catch(() => [0]),
+          // APTToken balance (new)
+          aptosClient.view({
+            payload: {
+              function: `${CONTRACTS.VAULT_ADDRESS}::APTToken::${MOCK_TOKEN_FUNCTIONS.GET_BALANCE}`,
               functionArguments: [account],
               typeArguments: [],
             }
@@ -408,14 +404,12 @@ export const useVault = () => {
       // Fixed payload format for Martian wallet compatibility
       const payload = {
         function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.DEPOSIT_LIQUIDITY}`,
-        type_arguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+        type_arguments: [`${CONTRACTS.APT_ADDRESS}`],
         // deposit_liquidity expects only the amount (u64)
         arguments: [amountInOctas],
       };
 
-      console.log('Deposit payload:', payload);
       const response = await signAndSubmitTransaction(payload);
-      console.log('Deposit response:', response);
 
       const txHash = (response as any)?.hash || (response as any)?.transactionHash || (typeof response === 'string' ? response : undefined);
       if (!txHash) {
@@ -470,13 +464,11 @@ export const useVault = () => {
 
       const payload = {
         function: `${CONTRACTS.VAULT_ADDRESS}::vault::${VAULT_FUNCTIONS.WITHDRAW_PROFITS}`,
-        type_arguments: [`${CONTRACTS.VAULT_ADDRESS}::mock_token::MockToken`],
+        type_arguments: [`${CONTRACTS.APT_ADDRESS}`],
         arguments: [],
       };
 
-      console.log('Withdraw payload:', payload);
       const response = await signAndSubmitTransaction(payload);
-      console.log('Withdraw response:', response);
 
       const txHash = (response as any)?.hash || (response as any)?.transactionHash || (typeof response === 'string' ? response : undefined);
       if (!txHash) {
