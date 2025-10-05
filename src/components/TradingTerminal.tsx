@@ -19,7 +19,9 @@ import {
 } from 'lucide-react';
 
 import { useWallet } from '@/hooks/useWallet';
-import { useTrading } from '@/hooks/useTrading';
+// import { useTrading } from '@/hooks/useTrading';
+import { useOrderbook } from '@/hooks/useOrderbook';
+import { ORDERBOOK_MODULE, ORDERBOOK_MARKET_OWNER, COIN_TYPES } from '@/lib/contracts';
 import { ApprovalModal } from './ApprovalModal';
 import { CONTRACTS } from '@/lib/contracts';
 
@@ -119,11 +121,11 @@ const api = {
           'Accept': 'application/json',
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       return await response.json();
     } catch (error) {
       console.error('Start agent fetch error:', error);
@@ -301,6 +303,29 @@ const TradingPanel = ({ account, onOrderSubmit, loading }) => {
   const [quantity, setQuantity] = useState('');
   const [baseAsset, setBaseAsset] = useState('APT');
   const [quoteAsset, setQuoteAsset] = useState('USDT');
+  const [autoPrice, setAutoPrice] = useState(true);
+
+  // Prefill price from Gate.io APT/USDT ticker (2 decimal tick)
+  useEffect(() => {
+    let cancelled = false;
+    const fetchGatePrice = async () => {
+      if (!autoPrice) return; // user has overridden
+      if (!(baseAsset === 'APT' && quoteAsset === 'USDT')) return;
+      try {
+        const res = await fetch('/gate/api/v4/spot/tickers?currency_pair=APT_USDT');
+        const data = await res.json();
+        const last = Number(data?.[0]?.last ?? data?.[0]?.lowest_ask ?? data?.[0]?.highest_bid);
+        if (!cancelled && Number.isFinite(last)) {
+          setPrice(last.toFixed(2));
+        }
+      } catch (e) {
+        // non-fatal; leave empty on error
+      }
+    };
+    fetchGatePrice();
+    const id = setInterval(fetchGatePrice, 5000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [baseAsset, quoteAsset, autoPrice]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -318,8 +343,8 @@ const TradingPanel = ({ account, onOrderSubmit, loading }) => {
       quoteAsset: getTokenAddress(quoteAsset),
       price: parseFloat(price),
       quantity: parseFloat(quantity),
-      side: side === 'buy' ? 'bid' : 'ask',
-      privateKey: '0x' + '0'.repeat(64)
+      side,
+      restriction: 0
     });
   };
 
@@ -386,10 +411,14 @@ const TradingPanel = ({ account, onOrderSubmit, loading }) => {
               type="number"
               step="0.0001"
               value={price}
-              onChange={(e) => setPrice(e.target.value)}
+              onChange={(e) => { setPrice(e.target.value); setAutoPrice(false); }}
               placeholder="0.0000"
               className="font-mono"
             />
+            <div className="flex items-center gap-2 mt-1">
+              <input id="autoPrice" type="checkbox" checked={autoPrice} onChange={(e) => setAutoPrice(e.target.checked)} />
+              <Label htmlFor="autoPrice" className="font-mono text-xs">Auto from Gate.io</Label>
+            </div>
           </div>
 
           <div>
@@ -416,7 +445,7 @@ const TradingPanel = ({ account, onOrderSubmit, loading }) => {
             className="w-full font-mono"
             disabled={loading || !account || !price || !quantity}
             variant={side === 'buy' ? 'default' : 'destructive'}
-            onClick={() => {}}
+            onClick={() => { console.log(loading, account, price, quantity, "Zuby"); }}
           >
             {loading ? 'SUBMITTING...' : `${side.toUpperCase()} ${baseAsset}`}
           </Button>
@@ -568,9 +597,7 @@ export function TradingTerminal() {
     } = useWallet();
     console.log('✅ useWallet hook successful:', { account, isConnected });
 
-    console.log('🛠️ Calling useTrading hook...');
-    const { checkOrderApprovals } = useTrading();
-    console.log('✅ useTrading hook successful');
+  // Approvals are not required on Aptos for our on-chain order flow
 
     console.log('🔄 Initializing state...');
     const [orderbook, setOrderbook] = useState(null);
@@ -587,6 +614,31 @@ export function TradingTerminal() {
   const [pendingOrder, setPendingOrder] = useState(null);
 
   const currentSymbol = `${CONTRACTS.APT_ADDRESS}_${CONTRACTS.USDT_ADDRESS}`;
+  // Wallet connect/disconnect handlers with UI loading state
+  const [walletActionLoading, setWalletActionLoading] = useState(false);
+  const handleConnect = async () => {
+    try {
+      setWalletActionLoading(true);
+      await connect();
+    } finally {
+      setWalletActionLoading(false);
+    }
+  };
+  const handleDisconnect = async () => {
+    try {
+      setWalletActionLoading(true);
+      await disconnect();
+    } finally {
+      setWalletActionLoading(false);
+    }
+  };
+
+  // On-chain orderbook (APT/USDT)
+  const { orderbook: ob, fetchDepth, placeLimitOrder, cancelOrder } = useOrderbook(
+    ORDERBOOK_MARKET_OWNER,
+    COIN_TYPES.APT,
+    COIN_TYPES.USDT
+  );
 
   const addLog = (message, type = 'info') => {
     const newLog = {
@@ -600,43 +652,37 @@ export function TradingTerminal() {
   const loadOrderbook = async () => {
     setLoading(true);
     try {
-      const response = await api.getOrderbook(currentSymbol);
-      if (response.status_code === 1) {
-        setOrderbook(response.orderbook);
-        addLog(`Orderbook loaded: ${response.orderbook.asks?.length || 0} asks, ${response.orderbook.bids?.length || 0} bids`);
-      } else {
-        addLog('Failed to load orderbook', 'error');
-      }
-    } catch (error) {
+      const depth = await fetchDepth(10);
+      setOrderbook({
+        bids: depth.bids.map(b => ({ price: b.price, amount: b.size, total: b.size })),
+        asks: depth.asks.map(a => ({ price: a.price, amount: a.size, total: a.size })),
+      });
+      addLog(`Orderbook loaded: ${depth.asks.length} asks, ${depth.bids.length} bids`);
+    } catch (error: any) {
       addLog(`Orderbook error: ${error.message}`, 'error');
     }
     setLoading(false);
   };
 
-  const submitOrderToAPI = async (orderData) => {
+  const submitOrderOnChain = async (orderData) => {
     try {
       addLog(`Submitting ${orderData.side} order: ${orderData.quantity} tokens @ ${orderData.price}`);
-      const response = await api.registerOrder(orderData);
-      
-      if (response.status_code === 1) {
-        addLog(`Order submitted successfully. ID: ${response.order.orderId}`, 'success');
-        if (response.order.trades?.length > 0) {
-          addLog(`Order matched! ${response.order.trades.length} trades executed`, 'success');
-        }
-        await loadOrderbook();
-      } else {
-        addLog(`Order failed: ${response.message}`, 'error');
-        if (response.errors) {
-          addLog(`Validation errors: ${JSON.stringify(response.errors)}`, 'error');
-        }
-      }
-    } catch (error) {
+      await placeLimitOrder({
+        side: orderData.side === 'buy' ? "bid" : "ask",
+        price: orderData.price,
+        size: orderData.quantity,
+        restriction: 'none',
+      });
+      addLog('Order submitted on-chain', 'success');
+      await loadOrderbook();
+    } catch (error: any) {
       addLog(`Order error: ${error.message}`, 'error');
       console.error('Full error:', error);
     }
   };
 
   const handleOrderSubmit = async (orderData) => {
+    console.log(orderData, "ZURAAKAK");
     if (!isConnected || !account) {
       addLog('Please connect your wallet first', 'error');
       return;
@@ -644,27 +690,9 @@ export function TradingTerminal() {
 
     setLoading(true);
     try {
-      addLog('Checking token approvals...');
-      const approvalCheck = await checkOrderApprovals({
-        side: orderData.side,
-        quantity: orderData.quantity.toString(),
-        price: orderData.price.toString(),
-        baseAsset: orderData.baseAsset,
-        quoteAsset: orderData.quoteAsset
-      });
-
-      if (approvalCheck.needsApproval) {
-        addLog('Token approval required', 'info');
-        setTokenApprovals(approvalCheck.tokenApprovals);
-        setPendingOrder(orderData);
-        setApprovalModalOpen(true);
-      } else {
-        addLog('Token approvals verified', 'success');
-        await submitOrderToAPI(orderData);
-      }
+      await submitOrderOnChain(orderData);
     } catch (error) {
-      addLog(`Approval check failed: ${error.message}`, 'error');
-      console.error('Approval check error:', error);
+      // already logged in submitOrderOnChain
     }
     setLoading(false);
   };
@@ -674,7 +702,7 @@ export function TradingTerminal() {
     if (pendingOrder) {
       addLog('Approvals completed, submitting order...', 'success');
       setLoading(true);
-      await submitOrderToAPI(pendingOrder);
+      await submitOrderOnChain(pendingOrder);
       setPendingOrder(null);
       setLoading(false);
     }
@@ -685,7 +713,7 @@ export function TradingTerminal() {
     setPendingOrder(null);
     addLog('Order cancelled by user', 'info');
   };
-  
+
   const handleStartAgent = async () => {
     setAgentLoading(true);
     try {
@@ -694,18 +722,16 @@ export function TradingTerminal() {
         addLog('AI agents stopped', 'info');
       } else {
         addLog('Starting AI agents...');
-        
+
         // Debug simple
-        console.log('Agent API URL:', AGENT_API_URL);
         addLog(`Calling: ${AGENT_API_URL}/start-bot`);
-        
+
         const response = await api.startAgent();
 
         addLog(`DEBUG - Response received: ${JSON.stringify(response)}`);
-        
-        console.log('Agent response:', response);
+
         addLog(`Response: ${JSON.stringify(response)}`);
-        
+
         if (response && response.status === 'success') {
           setAgentRunning(true);
           addLog('AI agents activated', 'success');
@@ -719,9 +745,10 @@ export function TradingTerminal() {
     }
     setAgentLoading(false);
   };
-  const formatAddress = (address) => {
-    if (!address) return 'N/A';
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  const formatAddress = (value: any) => {
+    const addr = typeof value === 'string' ? value : (value && (value.address || value.toString?.())) || '';
+    if (!addr) return 'Unknown';
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
   // Auto-refresh orderbook
@@ -775,8 +802,17 @@ export function TradingTerminal() {
 
           <div className="flex items-center space-x-2">
             <span className="text-sm font-medium text-aptos-blue-light">
-              {isConnected && account ? `Connected: ${formatAddress(account)}` : "Wallet Disconnected"}
+              {isConnected ? `Connected: ${formatAddress(account)}` : isConnecting ? 'Connecting…' : "Wallet Disconnected"}
             </span>
+            {!isConnected ? (
+              <Button variant="terminal" size="sm" onClick={handleConnect} disabled={isConnecting || walletActionLoading}>
+                {(isConnecting || walletActionLoading) ? (<><RefreshCw className="h-3 w-3 animate-spin mr-1" /> CONNECTING</>) : 'CONNECT'}
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" onClick={handleDisconnect} disabled={isConnecting || walletActionLoading}>
+                {(isConnecting || walletActionLoading) ? (<><RefreshCw className="h-3 w-3 animate-spin mr-1" /> DISCONNECTING</>) : 'DISCONNECT'}
+              </Button>
+            )}
           </div>
 
           <div className="flex items-center space-x-2 text-aptos-blue-light">

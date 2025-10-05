@@ -15,6 +15,12 @@ export default defineConfig(({ mode }) => ({
         secure: true,
         rewrite: (path) => path.replace(/^\/api/, "/api"),
       },
+      "/gate": {
+        target: "https://api.gateio.ws",
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/gate/, ""),
+      },
     },
   },
   plugins: [
